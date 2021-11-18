@@ -13,7 +13,6 @@ class AIClient(Client):
         except:
             traceback.print_exc()
             return
-
         if self.player == constants.W_PLAYER:
             try:
                 self.read()

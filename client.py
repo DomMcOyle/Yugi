@@ -17,7 +17,7 @@ class Client():
         else:
             raise ValueError("Player role must be BLACK or WHITE")
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.bind((self.serverIp, self.port))
+        self.sock.connect((self.serverIp, self.port))
         self.name = name
 
     def get_name(self):
@@ -39,7 +39,7 @@ class Client():
         self.sock.send(name_b)
 
     def read(self):
-        len = int(self.sock.recv(8))
+        len = int(self.sock.recv(64))
         recieved = self.sock.recv(len)
         self.current_state = json.loads(recieved.decode(encoding='utf-8'))
 
