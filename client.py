@@ -30,16 +30,16 @@ class Client():
         #action will be a dictionary
         jfiglio = json.dumps(action)
         j_byte = jfiglio.encode('utf-8')
-        self.sock.send(len(j_byte).to_bytes(8,'big'))
+        self.sock.send(len(j_byte).to_bytes(4,'big'))
         self.sock.send(j_byte)
 
     def declare_name(self):
         name_b = self.name.encode('utf-8')
-        self.sock.send(len(name_b).to_bytes(8,'big'))
+        self.sock.send(len(name_b).to_bytes(4,'big'))
         self.sock.send(name_b)
 
     def read(self):
-        len = int(self.sock.recv(64))
+        len = int(self.sock.recv(4))
         recieved = self.sock.recv(len)
         self.current_state = json.loads(recieved.decode(encoding='utf-8'))
 
