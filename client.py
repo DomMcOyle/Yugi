@@ -1,19 +1,19 @@
 import socket
-import sys
 import json
 
 import constants
 
-class client():
+
+class Client():
     def __init__(self, player, name="Yugi", timeout=60, ipAddress="localhost"):
         self.serverIp = ipAddress
         self.timeout = timeout
-        if player.lower() == constants.b_name:
-            self.player = constants.b_player
-            self.port = constants.b_port
-        elif player.lower() == constants.w_name:
-            self.port = constants.w_port
-            self.player = constants.w_player
+        if player.lower() == constants.B_NAME:
+            self.player = constants.B_PLAYER
+            self.port = constants.B_PORT
+        elif player.lower() == constants.W_NAME:
+            self.port = constants.W_PORT
+            self.player = constants.W_PLAYER
         else:
             raise ValueError("Player role must be BLACK or WHITE")
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -37,8 +37,20 @@ class client():
         name_b = self.name.encode('utf-8')
         self.sock.send(len(name_b).to_bytes(8,'big'))
         self.sock.send(name_b)
-        
+
     def read(self):
         len = int(self.sock.recv(8))
         recieved = self.sock.recv(len)
         self.current_state = json.loads(recieved.decode(encoding='utf-8'))
+
+    def get_player(self):
+        return self.player
+
+    def set_player(self, pl):
+        self.player = pl
+
+    def set_current_state(self, state):
+        self.state = state
+
+    def get_current_state(self):
+        return self.state

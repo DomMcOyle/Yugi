@@ -1,11 +1,12 @@
 ### CLIENT ###
-w_name = "white"
-b_name = "black"
-w_port = 5800
-b_port = 5801
+NUM_CMD_ARG = 1
+W_NAME = "white"
+B_NAME = "black"
+W_PORT = 5800
+B_PORT = 5801
 ### STATE ###
-w_player = "W"
-b_player ="B"
-w_win = "WW"
-b_win = "BW"
-draw = "D"
+W_PLAYER = "W"
+B_PLAYER ="B"
+W_WIN = "WW"
+B_WIN = "BW"
+DRAW = "D"
