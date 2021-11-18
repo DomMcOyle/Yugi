@@ -9,3 +9,14 @@ b_player ="B"
 w_win = "WW"
 b_win = "BW"
 draw = "D"
+### MIN MAXING ###
+initial_state = [list("OOOBBBOOO"),
+                 list("OOOOBOOOO"),
+                 list("OOOOWOOOO"),
+                 list("BOOOWOOOB"),
+                 list("BBWWKWWBB"),
+                 list("BOOOWOOOB"),
+                 list("OOOOWOOOO"),
+                 list("OOOOBOOOO"),
+                 list("OOOBBBOOO")]
+alph = list("abcdefghi")

@@ -42,3 +42,8 @@ class client():
         len = int(self.sock.recv(8))
         recieved = self.sock.recv(len)
         self.current_state = json.loads(recieved.decode(encoding='utf-8'))
+
+
+"""current_client = client("WHITE")
+current_client.declare_name()
+print(current_client.read())"""
