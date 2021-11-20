@@ -10,6 +10,7 @@ w_win = "WW"
 b_win = "BW"
 draw = "D"
 ### MIN MAXING ###
+free_box = "O"
 initial_state = [list("OOOBBBOOO"),
                  list("OOOOBOOOO"),
                  list("OOOOWOOOO"),
@@ -19,4 +20,16 @@ initial_state = [list("OOOBBBOOO"),
                  list("OOOOWOOOO"),
                  list("OOOOBOOOO"),
                  list("OOOBBBOOO")]
+king_check_state = [list("OOOOOOOOO"),
+                     list("OOOOOOOOO"),
+                     list("OOOOOOOOO"),
+                     list("OOOOOOOOO"),
+                     list("OOBOTOOOO"),
+                     list("OOOWBOOOO"),
+                     list("OOOOOOOOO"),
+                     list("OOOOOOOOO"),
+                     list("OOOOOOOOO")]
 alph = list("abcdefghi")
+king = "K"
+tower = "T"
+tower_position = [4,4]
