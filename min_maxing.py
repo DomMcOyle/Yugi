@@ -228,18 +228,20 @@ def alphabeta_search(state, game, d=4, cutoff_test=None, eval_fn=None):
             beta = min(beta, v)
         return v
 
-    # Body of alphabeta_search starts here:
+    # Body of alpha_beta_cutoff_search starts here:
     # The default test cuts off at depth d or at a terminal state
-    cutoff_test = (cutoff_test or
-                   (lambda state,depth: depth>d or game.terminal_test(state)))
+    cutoff_test = (cutoff_test or (lambda state, depth: depth > d or game.terminal_test(state)))
     eval_fn = eval_fn or (lambda state: game.utility(state, player))
-    return argmax(game.actions(state),
-                  lambda a: min_value(game.result(state, a),
-                                      -np.inf, np.inf, 0))
+    best_score = -np.inf
+    beta = np.inf
+    best_action = None
+    for a in game.actions(state):
+        v = min_value(game.result(state, a), best_score, beta, 1)
+        if v > best_score:
+            best_score = v
+            best_action = a
+    return best_action
 
-
-def argmax(state_list, func):
-    pass
 
 
 gm = tablut_game()
