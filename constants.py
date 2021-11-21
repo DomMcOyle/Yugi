@@ -10,6 +10,13 @@ B_PLAYER ="B"
 W_WIN = "WW"
 B_WIN = "BW"
 DRAW = "D"
+JSON_BOARD = "board"
+JSON_TURN = 'turn'
+JSON_WPLAYER = "WHITE"
+JSON_BPLAYER = "BLACK"
+JSON_FROM = "from"
+JSON_TO = "to"
+
 
 ### MIN MAXING ###
 free_box = "O"
@@ -35,3 +42,4 @@ alph = list("abcdefghi")
 king = "K"
 tower = "T"
 tower_position = [4,4]
+JSON_LOOKUP = {'EMPTY': free_box, 'KING': king, 'WHITE':W_PLAYER, 'BLACK': B_PLAYER, 'TOWER':tower }

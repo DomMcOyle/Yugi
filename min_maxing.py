@@ -22,6 +22,17 @@ class tablut_move:
         to_return = (chosen_column, chosen_row)
         return to_return
 
+    @staticmethod
+    def to_json_dict(from_,to,turn):
+        move = tablut_move()
+        to_send = dict()
+        to_send[constants.JSON_FROM] = move.from_num_to_notation(from_)
+        to_send[constants.JSON_TO] = move.from_num_to_notation(to)
+        if turn == constants.W_PLAYER:
+            to_send[constants.JSON_TURN] = constants.JSON_WPLAYER
+        else:
+            to_send[constants.JSON_TURN] = constants.JSON_BPLAYER
+
 
 class tablut_state:
     def __init__(self, player, board):
@@ -42,13 +53,27 @@ class tablut_state:
         return self.initial
 
     def negate_current_player(self):
-        if self.current_player == constants.w_player:
-            return constants.b_player
+        if self.current_player == constants.W_PLAYER:
+            return constants.B_PLAYER
         else:
-            return constants.w_player
+            return constants.W_PLAYER
 
     def __str__(self):
         return str((self.current_player, self.current_board))
+
+    @staticmethod
+    def from_json_dict_state(json_dict):
+        player = json_dict[constants.JSON_TURN]
+        if player == constants.JSON_BPLAYER:
+            player = constants.B_PLAYER
+        elif player == constants.JSON_WPLAYER:
+            player = constants.W_PLAYER
+        board = json_dict[constants.JSON_BOARD]
+        for r in range(0, len(board)):
+            for c in range(0, len(board[0])):
+                board[r, c] = constants.JSON_LOOKUP[board[r, c]]
+
+        return tablut_state(player, board)
 
 
 
@@ -99,7 +124,7 @@ class tablut_game:
 
             move_dict.update({(row, col): couple_list})
         # if it's the white's turn, consider the king
-        if state.get_current_player() == constants.w_player:
+        if state.get_current_player() == constants.W_PLAYER:
             king_pos = np.where(state.get_current_board() == constants.king)
             king_pos_rows = king_pos[0]
             king_pos_cols = king_pos[1]
@@ -135,7 +160,7 @@ class tablut_game:
         try:
             if result_board[move[1][0]+1, move[1][1]] == state.negate_current_player():
                 if (result_board[move[1][0] + 2, move[1][1]] == state.get_current_player()
-                        or (state.get_current_player() == constants.w_player
+                        or (state.get_current_player() == constants.W_PLAYER
                             and (result_board[move[1][0] + 2, move[1][1]] == constants.king))):
                     result_board[move[1][0] + 1, move[1][1]] = constants.free_box
         except:
@@ -143,7 +168,7 @@ class tablut_game:
         try:
             if result_board[move[1][0] - 1, move[1][1]] == state.negate_current_player():
                 if (result_board[move[1][0] - 2, move[1][1]] == state.get_current_player()
-                        or (state.get_current_player() == constants.w_player
+                        or (state.get_current_player() == constants.W_PLAYER
                             and (result_board[move[1][0] - 2, move[1][1]] == constants.king))):
                     result_board[move[1][0] - 1, move[1][1]] = constants.free_box
         except:
@@ -151,7 +176,7 @@ class tablut_game:
         try:
             if result_board[move[1][0], move[1][1] + 1] == state.negate_current_player():
                 if (result_board[move[1][0], move[1][1] + 2] == state.get_current_player()
-                        or (state.get_current_player() == constants.w_player
+                        or (state.get_current_player() == constants.W_PLAYER
                             and (result_board[move[1][0], move[1][1] + 2] == constants.king))):
                     result_board[move[1][0], move[1][1] + 1] = constants.free_box
         except:
@@ -159,7 +184,7 @@ class tablut_game:
         try:
             if result_board[move[1][0], move[1][1] - 1] == state.negate_current_player():
                 if (result_board[move[1][0], move[1][1] - 2] == state.get_current_player()
-                        or (state.get_current_player() == constants.w_player
+                        or (state.get_current_player() == constants.W_PLAYER
                             and (result_board[move[1][0], move[1][1] - 2] == constants.king))):
                     result_board[move[1][0], move[1][1] - 1] = constants.free_box
         except:
@@ -245,6 +270,6 @@ def alphabeta_search(state, game, d=4, cutoff_test=None, eval_fn=None):
 
 
 gm = tablut_game()
-cs = tablut_state(constants.b_player, np.array(constants.king_check_state))
+cs = tablut_state(constants.B_PLAYER, np.array(constants.king_check_state))
 move = np.array([[4, 2], [5, 2]])
 print(gm.result(cs, move))
