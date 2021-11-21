@@ -1,5 +1,5 @@
 ### CLIENT ###
-NUM_CMD_ARG = 2
+NUM_CMD_ARG = 1
 W_NAME = "white"
 B_NAME = "black"
 W_PORT = 5800

@@ -1,6 +1,7 @@
 from client import Client
 import traceback
 import constants
+import time
 
 class AIClient(Client):
     def __init__(self, player, name="Yugi", timeout=60, ipAddress="localhost"):
@@ -13,6 +14,7 @@ class AIClient(Client):
         except:
             traceback.print_exc()
             return
+
         if self.player == constants.W_PLAYER:
             try:
                 self.read()

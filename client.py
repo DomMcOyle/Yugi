@@ -28,19 +28,29 @@ class Client():
 
     def write(self, action):
         #action will be a dictionary
-        jfiglio = json.dumps(action)
+        jfiglio = json.dumps(action) + '\r\n'
         j_byte = jfiglio.encode('utf-8')
-        self.sock.send(len(j_byte).to_bytes(4,'big'))
-        self.sock.send(j_byte)
+        self.sock.sendall(len(j_byte).to_bytes(4,'big'))
+        self.sock.sendall(j_byte)
 
     def declare_name(self):
+        send_name = self.name + '\r\n'
         name_b = self.name.encode('utf-8')
-        self.sock.send(len(name_b).to_bytes(4,'big'))
-        self.sock.send(name_b)
+        self.sock.sendall(len(name_b).to_bytes(4,'big'))
+        self.sock.sendall(name_b)
 
     def read(self):
-        len = int(self.sock.recv(4))
-        recieved = self.sock.recv(len)
+        l = b''
+        while len(l) < 4:
+            data = self.sock.recv(4-len(l))
+            if data:
+                l += data
+        l = int.from_bytes(l,'big')
+        recieved = b''
+        while len(recieved)<l:
+            data = self.sock.recv(l-len(recieved))
+            if data:
+                recieved += data
         self.current_state = json.loads(recieved.decode(encoding='utf-8'))
 
     def get_player(self):
@@ -50,7 +60,7 @@ class Client():
         self.player = pl
 
     def set_current_state(self, state):
-        self.state = state
+        self.current_state = state
 
     def get_current_state(self):
-        return self.state
+        return self.current_state
