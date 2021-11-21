@@ -43,7 +43,7 @@ class AIClient(Client):
                 elif self.get_current_state().get_current_player() == constants.B_WIN:
                     print("BLACK WINS! - White sent to the shadow realm...")
                     exit(1)
-                elif  self.get_current_state().get_current_player() == constants.B_WIN:
+                elif  self.get_current_state().get_current_player() == constants.DRAW:
                     print("DRAW! - I activate SELF-DESTRUCT BUTTON!")
                     exit(1)
         except SystemExit:
