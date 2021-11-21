@@ -20,6 +20,7 @@ class AIClient(Client):
                 self.read()
                 print("Current state:")
                 print(self.get_current_state())
+                
             except:
                 traceback.print_exc()
                 return

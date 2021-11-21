@@ -2,6 +2,7 @@ import socket
 import json
 
 import constants
+import min_maxing
 
 
 class Client():
@@ -35,7 +36,7 @@ class Client():
 
     def declare_name(self):
         send_name = self.name + '\r\n'
-        name_b = self.name.encode('utf-8')
+        name_b = send_name.encode('utf-8')
         self.sock.sendall(len(name_b).to_bytes(4,'big'))
         self.sock.sendall(name_b)
 
@@ -51,7 +52,7 @@ class Client():
             data = self.sock.recv(l-len(recieved))
             if data:
                 recieved += data
-        self.current_state = json.loads(recieved.decode(encoding='utf-8'))
+        self.current_state = min_maxing.tablut_state.from_json_dict_state(json.loads(recieved.decode(encoding='utf-8')))
 
     def get_player(self):
         return self.player
