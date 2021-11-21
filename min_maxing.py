@@ -23,15 +23,20 @@ class tablut_move:
         return to_return
 
     @staticmethod
-    def to_json_dict(from_,to,turn):
-        move = tablut_move()
+    def to_json_dict(from_,to,turn, convert=True):
         to_send = dict()
-        to_send[constants.JSON_FROM] = move.from_num_to_notation(from_)
-        to_send[constants.JSON_TO] = move.from_num_to_notation(to)
+        if convert:
+            move = tablut_move()
+            to_send[constants.JSON_FROM] = move.from_num_to_notation(from_)
+            to_send[constants.JSON_TO] = move.from_num_to_notation(to)
+        else:
+            to_send[constants.JSON_FROM] = from_
+            to_send[constants.JSON_TO] = to
         if turn == constants.W_PLAYER:
             to_send[constants.JSON_TURN] = constants.JSON_WPLAYER
         else:
             to_send[constants.JSON_TURN] = constants.JSON_BPLAYER
+        return to_send
 
 
 class tablut_state:
@@ -58,6 +63,16 @@ class tablut_state:
         else:
             return constants.W_PLAYER
 
+    def render(self):
+        print("Turn: " + str(self.current_player))
+        i = 1
+        print("  a  b  c  d  e  f  g  h  i")
+        for row in self.current_board:
+            temp = str(row)
+            print(str(i) + " " + (temp.replace("[", "").replace("]", "").replace(",", " ").replace("'", "")))
+            i = i + 1
+
+
     def __str__(self):
         return str((self.current_player, self.current_board))
 
@@ -68,10 +83,16 @@ class tablut_state:
             player = constants.B_PLAYER
         elif player == constants.JSON_WPLAYER:
             player = constants.W_PLAYER
+        elif player == constants.JSON_BWIN:
+            player = constants.B_WIN
+        elif player == constants.JSON_WWIN:
+            player = constants.W_WIN
+        elif player == constants.JSON_DRAW:
+            player = constants.DRAW
         board = json_dict[constants.JSON_BOARD]
         for r in range(0, len(board)):
             for c in range(0, len(board[0])):
-                board[r, c] = constants.JSON_LOOKUP[board[r, c]]
+                board[r][c] = constants.JSON_LOOKUP[board[r][c]]
 
         return tablut_state(player, board)
 

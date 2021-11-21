@@ -7,8 +7,6 @@ if __name__ == "__main__":
     if len(sys.argv) < constants.NUM_CMD_ARG:
         print("Missing command line argument (role, timeout, server IP).")
         exit(-1)
-    print(sys.argv[1].lower())
-    print(constants.W_NAME)
     if sys.argv[1].lower() != constants.W_NAME and sys.argv[1].lower() != constants.B_NAME:
         print("You must specify which player you are (WHITE or BLACK)!")
         exit(-1)
