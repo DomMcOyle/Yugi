@@ -4,7 +4,7 @@ import numpy as np
 
 from keras.layers import Conv2D, MaxPooling2D, Input, Dropout, Flatten, Dense
 from keras.models import Model
-from keras.optimizers.adam_v2 import Adam
+from tensorflow.keras.optimizers import Adam
 from keras import callbacks
 
 
@@ -22,14 +22,25 @@ def build_network(input_shape):
 
 
 ds = tu.load_dataset("..\\dataset\\parsed_dataset.csv")
+# remove initial states
+ds = ds[ds.turn_number != 1]
+# drop useless columns (4now)
 ds = ds.drop('turn_number', axis=1)
 ds = ds.drop('color_player', axis=1)
+
 input_shape = (9,9)
-learning_rate = 0.001
 arrayset = ds.to_numpy()
 train_set = tu.convert_boardstate(arrayset[:, 0], input_shape)
 label_list = tu.get_labels(arrayset)
-model = build_network(input_shape)
-ada = Adam(lr=learning_rate)
+
+learning_rate = 0.001
+features = 1
+print(train_set.shape)
+X = train_set.reshape((train_set.shape[0], train_set.shape[1], train_set.shape[2], features))
+print(X.shape)
+print(X[0].shape)
+
+model = build_network(X.shape[1:])
+ada = Adam(learning_rate=learning_rate)
 model.compile(loss='mse', optimizer=ada)
 
