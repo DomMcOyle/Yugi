@@ -45,3 +45,4 @@ king = "K"
 tower = "T"
 tower_position = [4,4]
 JSON_LOOKUP = {'EMPTY': free_box, 'KING': king, 'WHITE':W_PLAYER, 'BLACK': B_PLAYER, 'THRONE':tower }
+
