@@ -66,14 +66,6 @@ class tablut_game:
         else:
             return True
 
-    """def __free_box_king__(self, state, pos):
-        #print(state.get_current_board()[pos[0], pos[1]])
-        if (state.get_current_board()[pos[0], pos[1]] == constants.free_box
-                or state.get_current_board()[pos[0], pos[1]] == constants.tower):
-            return True
-        else:
-            return False"""
-
     def actions(self, state):
         """
         given a state, returns all the possible moves for the pawns belonging to the current player
@@ -84,35 +76,44 @@ class tablut_game:
         pos = np.where(state.get_current_board() == state.get_current_player())
         pos_rows = pos[0]
         pos_cols = pos[1]
-        move_dict = {}
-        for j in range(0, pos_rows.shape[0]):
-            row = pos_rows[j]
-            col = pos_cols[j]
-            couple_list = []
-
-            for i in range(0, 9):
-                if self.__free_box__(state, (row, i)) and (row, i) not in couple_list:
-                    couple_list.extend([(row, i)])
-
-                if self.__free_box__(state, (i, col)) and (i, col) not in couple_list:
-                    couple_list.extend([(i, col)])
-
-            move_dict.update({(row, col): couple_list})
-        # if it's the white's turn, consider the king ## to optimize, and add camp check
         if state.get_current_player() == constants.w_player:
             king_pos = np.where(state.get_current_board() == constants.king)
-            king_pos_rows = king_pos[0]
-            king_pos_cols = king_pos[1]
-            for j in range(0, king_pos_rows.shape[0]):
-                row = king_pos_rows[j]
-                col = king_pos_cols[j]
-                couple_list = []
-                for i in range(0, 9):
-                    if self.__free_box__(state, (row, i)) and (row, i) not in couple_list:
-                        couple_list.extend([(row, i)])
-                    if self.__free_box__(state, (i, col)) and (i, col) not in couple_list:
-                        couple_list.extend([(i, col)])
-            move_dict.update({(row, col): couple_list})
+            pos_rows = np.append(pos[0], (king_pos[0]))
+            pos_cols = np.append(pos[1], (king_pos[1]))
+
+        move_dict = {}
+        for i in range(0, pos_rows.shape[0]):
+            couple_list = []
+            down_flag = True
+            left_flag = True
+            up_flag = True
+            right_flag = True
+            for j in range(1, 9):
+                row_to_check_down = pos_rows[i] + j
+                col_to_check_left = pos_cols[i] + j
+                row_to_check_up = pos_rows[i] - j
+                col_to_check_right = pos_cols[i] - j
+                if row_to_check_down < 9 and down_flag:
+                    if self.__free_box__(state, (row_to_check_down, pos_cols[i])):
+                        couple_list.extend([(row_to_check_down, pos_cols[i])])
+                    else:
+                        down_flag = False
+                if col_to_check_left < 9 and left_flag:
+                    if self.__free_box__(state, (pos_rows[i], col_to_check_left)):
+                        couple_list.extend([(pos_rows[i], col_to_check_left)])
+                    else:
+                        left_flag = False
+                if row_to_check_up >= 0 and up_flag:
+                    if self.__free_box__(state, (row_to_check_up, pos_cols[i])):
+                        couple_list.extend([(row_to_check_up, pos_cols[i])])
+                    else:
+                        up_flag = False
+                if col_to_check_right >= 0 and right_flag:
+                    if self.__free_box__(state, (pos_rows[i], col_to_check_right)):
+                        couple_list.extend([(pos_rows[i], col_to_check_right)])
+                    else:
+                        right_flag = False
+                move_dict.update({(pos_rows[i], pos_cols[i]): couple_list})
         fields = constants.camp_position
         to_return = []
         for pawn_pos in move_dict.keys():
@@ -176,11 +177,12 @@ class tablut_game:
                     result_board[move[1][0], move[1][1] - 1] = constants.free_box
         except:
             pass
-        return result_board
+        state_to_return = tablut_state(state.negate_current_player(), result_board)
+        return state_to_return
 
     def utility(self, state, player):  # euristica (da fare)
         """Return the value of this final state to player."""
-        raise NotImplementedError
+        return np.round(np.random.rand())
 
     def __king_adjacent_to_tower__(self, state):
         king_pos = np.where(state.get_current_board() == constants.king)
@@ -266,7 +268,6 @@ class tablut_game:
 def alphabeta_search(state, game, d=4, cutoff_test=None, eval_fn=None):
     """Search game to determine best action; use alpha-beta pruning.
     This version cuts off search and uses an evaluation function."""
-
     player = game.to_move(state)
 
     def max_value(state, alpha, beta, depth):
@@ -308,16 +309,20 @@ def alphabeta_search(state, game, d=4, cutoff_test=None, eval_fn=None):
     return best_action
 
 
-"""
+""" test result
 gm = tablut_game()
 cs = tablut_state(constants.b_player, np.array(constants.king_check_state))
 move = np.array([[6, 5], [6, 4]])
 print(gm.result(cs, move))"""
 
+""" test alphabeta"""
 gm = tablut_game()
 cs = tablut_state(constants.b_player, np.array(constants.king_check_state))
-print(gm.terminal_test(cs))
+print(alphabeta_search(cs, gm))
 
-"""gm = tablut_game()
-cs = tablut_state(constants.b_player, np.array(constants.king_check_state))
+
+
+""" test actions
+gm = tablut_game()
+cs = tablut_state(constants.w_player, np.array(constants.king_check_state))
 print(gm.actions(cs))"""
