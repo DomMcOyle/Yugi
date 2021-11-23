@@ -5,7 +5,7 @@ import numpy as np
 
 class tablut_move:
     def __init__(self):
-        self.lut = np.array(constants.alph)  # lookuptable
+        self.lut = np.array(constants.ALPH)  # lookuptable
 
     def from_num_to_notation(self, num_move):
         # move converter, from couple of integers in range [0,8] to standard notation (string)
@@ -22,12 +22,28 @@ class tablut_move:
         to_return = (chosen_column, chosen_row)
         return to_return
 
+    @staticmethod
+    def to_json_dict(from_,to,turn, convert=True):
+        to_send = dict()
+        if convert:
+            move = tablut_move()
+            to_send[constants.JSON_FROM] = move.from_num_to_notation(from_)
+            to_send[constants.JSON_TO] = move.from_num_to_notation(to)
+        else:
+            to_send[constants.JSON_FROM] = from_
+            to_send[constants.JSON_TO] = to
+        if turn == constants.W_PLAYER:
+            to_send[constants.JSON_TURN] = constants.JSON_WPLAYER
+        else:
+            to_send[constants.JSON_TURN] = constants.JSON_BPLAYER
+        return to_send
+
 
 class tablut_state:
     def __init__(self, player, board):
         self.current_player = player
         self.current_board = board
-        self.initial = np.array(constants.initial_state)
+        self.initial = np.array(constants.INITIAL_STATE)
 
     def get_current_player(self):
         return self.current_player
@@ -42,13 +58,43 @@ class tablut_state:
         return self.initial
 
     def negate_current_player(self):
-        if self.current_player == constants.w_player:
-            return constants.b_player
+        if self.current_player == constants.W_PLAYER:
+            return constants.B_PLAYER
         else:
-            return constants.w_player
+            return constants.W_PLAYER
+
+    def render(self):
+        print("Turn: " + str(self.current_player))
+        i = 1
+        print("  a  b  c  d  e  f  g  h  i")
+        for row in self.current_board:
+            temp = str(row)
+            print(str(i) + " " + (temp.replace("[", "").replace("]", "").replace(",", " ").replace("'", "")))
+            i = i + 1
+
 
     def __str__(self):
         return str((self.current_player, self.current_board))
+
+    @staticmethod
+    def from_json_dict_state(json_dict):
+        player = json_dict[constants.JSON_TURN]
+        if player == constants.JSON_BPLAYER:
+            player = constants.B_PLAYER
+        elif player == constants.JSON_WPLAYER:
+            player = constants.W_PLAYER
+        elif player == constants.JSON_BWIN:
+            player = constants.B_WIN
+        elif player == constants.JSON_WWIN:
+            player = constants.W_WIN
+        elif player == constants.JSON_DRAW:
+            player = constants.DRAW
+        board = json_dict[constants.JSON_BOARD]
+        for r in range(0, len(board)):
+            for c in range(0, len(board[0])):
+                board[r][c] = constants.JSON_LOOKUP[board[r][c]]
+
+        return tablut_state(player, board)
 
 
 class tablut_game:
@@ -61,7 +107,7 @@ class tablut_game:
     be done in the constructor."""
 
     def __free_box__(self, state, pos):
-        if state.get_current_board()[pos[0], pos[1]] != constants.free_box:
+        if state.get_current_board()[pos[0], pos[1]] != constants.FREE_BOX:
             return False
         else:
             return True
@@ -76,8 +122,8 @@ class tablut_game:
         pos = np.where(state.get_current_board() == state.get_current_player())
         pos_rows = pos[0]
         pos_cols = pos[1]
-        if state.get_current_player() == constants.w_player:
-            king_pos = np.where(state.get_current_board() == constants.king)
+        if state.get_current_player() == constants.W_PLAYER:
+            king_pos = np.where(state.get_current_board() == constants.KING)
             pos_rows = np.append(pos[0], (king_pos[0]))
             pos_cols = np.append(pos[1], (king_pos[1]))
 
@@ -114,67 +160,68 @@ class tablut_game:
                     else:
                         right_flag = False
                 move_dict.update({(pos_rows[i], pos_cols[i]): couple_list})
-        fields = constants.camp_position
+        fields = constants.CAMP_POSITION
         to_return = []
         for pawn_pos in move_dict.keys():
             for dest_pos in move_dict.get(pawn_pos):
-                if pawn_pos in fields or (dest_pos not in fields and dest_pos != constants.tower_position):
+                if pawn_pos in fields or (dest_pos not in fields and dest_pos != constants.TOWER_POSITION):
                     to_return.append(np.array([pawn_pos, dest_pos]))
         return np.array(to_return)
 
     def result(self, state, move):  # chiedere che cosa implementare
         """Return the state that results from making a move from a state."""
         result_board = state.get_current_board()
-        if result_board[move[0][0], move[0][1]] != constants.king:
+        if result_board[move[0][0], move[0][1]] != constants.KING:
             result_board[move[1][0], move[1][1]] = state.get_current_player()
-            result_board[move[0][0], move[0][1]] = constants.free_box
+            result_board[move[0][0], move[0][1]] = constants.FREE_BOX
         else:
-            result_board[move[1][0], move[1][1]] = constants.king
-            if np.all(move[0] == constants.tower_position):
-                result_board[move[0][0], move[0][1]] = constants.tower
+            result_board[move[1][0], move[1][1]] = constants.KING
+            if np.all(move[0] == constants.TOWER_POSITION):
+                result_board[move[0][0], move[0][1]] = constants.TOWER
             else:
-                result_board[move[0][0], move[0][1]] = constants.free_box
+                result_board[move[0][0], move[0][1]] = constants.FREE_BOX
 
         # handle captures add capture with camps (the next box can be a camp, the tower or an allied pawn, or king
         # in case of the white player)
         try:
             if result_board[move[1][0] + 1, move[1][1]] == state.negate_current_player():
                 if (result_board[move[1][0] + 2, move[1][1]] == state.get_current_player()
-                        or (move[1][0] + 2, move[1][1]) in constants.camp_position
-                        or (move[1][0] + 2, move[1][1]) == constants.tower_position
-                        or (state.get_current_player() == constants.w_player
-                            and (result_board[move[1][0] + 2, move[1][1]] == constants.king))):
-                    result_board[move[1][0] + 1, move[1][1]] = constants.free_box
+                        or (move[1][0] + 2, move[1][1]) in constants.CAMP_POSITION
+                        or (move[1][0] + 2, move[1][1]) == constants.TOWER_POSITION
+                        or (state.get_current_player() == constants.W_PLAYER
+                            and (result_board[move[1][0] + 2, move[1][1]] == constants.KING))):
+                    result_board[move[1][0] + 1, move[1][1]] = constants.FREE_BOX
         except:
             pass
         try:
             if result_board[move[1][0] - 1, move[1][1]] == state.negate_current_player():
                 if (result_board[move[1][0] - 2, move[1][1]] == state.get_current_player()
-                        or (move[1][0] - 2, move[1][1]) in constants.camp_position
-                        or (move[1][0] - 2, move[1][1]) == constants.tower_position
-                        or (state.get_current_player() == constants.w_player
-                            and (result_board[move[1][0] - 2, move[1][1]] == constants.king))):
-                    result_board[move[1][0] - 1, move[1][1]] = constants.free_box
+                        or (move[1][0] - 2, move[1][1]) in constants.CAMP_POSITION
+                        or (move[1][0] - 2, move[1][1]) == constants.TOWER_POSITION
+                        or (state.get_current_player() == constants.W_PLAYER
+                            and (result_board[move[1][0] - 2, move[1][1]] == constants.KING))):
+                    result_board[move[1][0] - 1, move[1][1]] = constants.FREE_BOX
         except:
             pass
         try:
             if result_board[move[1][0], move[1][1] + 1] == state.negate_current_player():
                 if (result_board[move[1][0], move[1][1] + 2] == state.get_current_player()
-                        or (move[1][0], move[1][1] + 2) in constants.camp_position
-                        or (move[1][0], move[1][1] + 2) == constants.tower_position
-                        or (state.get_current_player() == constants.w_player
-                            and (result_board[move[1][0], move[1][1] + 2] == constants.king))):
-                    result_board[move[1][0], move[1][1] + 1] = constants.free_box
+                        or (move[1][0], move[1][1] + 2) in constants.CAMP_POSITION
+                        or (move[1][0], move[1][1] + 2) == constants.TOWER_POSITION
+                        or (state.get_current_player() == constants.W_PLAYER
+                            and (result_board[move[1][0], move[1][1] + 2] == constants.KING))):
+                    result_board[move[1][0], move[1][1] + 1] = constants.FREE_BOX
         except:
             pass
         try:
             if result_board[move[1][0], move[1][1] - 1] == state.negate_current_player():
                 if (result_board[move[1][0], move[1][1] - 2] == state.get_current_player()
-                        or (move[1][0], move[1][1] - 2) in constants.camp_position
-                        or (move[1][0], move[1][1] - 2) == constants.tower_position
-                        or (state.get_current_player() == constants.w_player
-                            and (result_board[move[1][0], move[1][1] - 2] == constants.king))):
-                    result_board[move[1][0], move[1][1] - 1] = constants.free_box
+                        or (move[1][0], move[1][1] - 2) in constants.CAMP_POSITION
+                        or (move[1][0], move[1][1] - 2) == constants.TOWER_POSITION
+                        or (state.get_current_player() == constants.W_PLAYER
+
+                            and (result_board[move[1][0], move[1][1] - 2] == constants.KING))):
+                    result_board[move[1][0], move[1][1] - 1] = constants.FREE_BOX
         except:
             pass
         state_to_return = tablut_state(state.negate_current_player(), result_board)
@@ -185,35 +232,35 @@ class tablut_game:
         return np.round(np.random.rand())
 
     def __king_adjacent_to_tower__(self, state):
-        king_pos = np.where(state.get_current_board() == constants.king)
+        king_pos = np.where(state.get_current_board() == constants.KING)
         king_pos_rows = king_pos[0]
         king_pos_cols = king_pos[1]
-        if (king_pos_rows, king_pos_cols) in constants.adjacent_to_tower_positions:
+        if (king_pos_rows, king_pos_cols) in constants.ADJACENT_TO_TOWER_POSITION:
             return True
         return False
 
     def __king_surrounded_num__(self, state):
-        king_pos = np.where(state.get_current_board() == constants.king)
+        king_pos = np.where(state.get_current_board() == constants.KING)
         king_pos_rows = king_pos[0]
         king_pos_cols = king_pos[1]
         to_return = 0
         try:
-            if state.get_current_board()[king_pos_rows + 1, king_pos_cols] == constants.b_player:
+            if state.get_current_board()[king_pos_rows + 1, king_pos_cols] == constants.B_PLAYER:
                 to_return += 1
         except:
             pass
         try:
-            if state.get_current_board()[king_pos_rows - 1, king_pos_cols] == constants.b_player:
+            if state.get_current_board()[king_pos_rows - 1, king_pos_cols] == constants.B_PLAYER:
                 to_return += 1
         except:
             pass
         try:
-            if state.get_current_board()[king_pos_rows, king_pos_cols + 1] == constants.b_player:
+            if state.get_current_board()[king_pos_rows, king_pos_cols + 1] == constants.B_PLAYER:
                 to_return += 1
         except:
             pass
         try:
-            if state.get_current_board()[king_pos_rows, king_pos_cols - 1] == constants.b_player:
+            if state.get_current_board()[king_pos_rows, king_pos_cols - 1] == constants.B_PLAYER:
                 to_return += 1
         except:
             pass
@@ -221,15 +268,15 @@ class tablut_game:
 
     def terminal_test(self, state):  # distinzione fra bianchi e neri (da fare)
         """Return True if this is a final state for the game."""
-        king_pos = np.where(state.get_current_board() == constants.king)
+        king_pos = np.where(state.get_current_board() == constants.KING)
         king_pos_rows = king_pos[0]
         king_pos_cols = king_pos[1]
         # white wins, the king has escaped
 
-        if (king_pos_rows, king_pos_cols) in constants.escape_positions:
+        if (king_pos_rows, king_pos_cols) in constants.ESCAPE_POSITION:
             return True
         else:
-            if ((king_pos_rows, king_pos_cols) == constants.tower_position
+            if ((king_pos_rows, king_pos_cols) == constants.TOWER_POSITION
                     and self.__king_surrounded_num__(state) == 4):
                 return True  # black wins by capturing the king in the tower
             else:
@@ -311,18 +358,19 @@ def alphabeta_search(state, game, d=4, cutoff_test=None, eval_fn=None):
 
 """ test result
 gm = tablut_game()
-cs = tablut_state(constants.b_player, np.array(constants.king_check_state))
+cs = tablut_state(constants.B_PLAYER, np.array(constants.KING_CHECK_STATE))
 move = np.array([[6, 5], [6, 4]])
 print(gm.result(cs, move))"""
 
 """ test alphabeta"""
 gm = tablut_game()
-cs = tablut_state(constants.b_player, np.array(constants.king_check_state))
+cs = tablut_state(constants.B_PLAYER, np.array(constants.KING_CHECK_STATE))
 print(alphabeta_search(cs, gm))
 
 
 
 """ test actions
 gm = tablut_game()
-cs = tablut_state(constants.w_player, np.array(constants.king_check_state))
+cs = tablut_state(constants.W_PLAYER, np.array(constants.KING_CHECK_STATE))
 print(gm.actions(cs))"""
+
