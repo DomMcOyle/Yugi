@@ -22,30 +22,48 @@ def build_network(input_shape):
     f_hidden = Dropout(rate=0.2)(f_hidden)
     f_hidden = Dense(128, activation='relu')(f_hidden)
     f_hidden = Dense(64, activation='relu')(f_hidden)
-    output = Dense(2, activation='sigmoid')(f_hidden)
+    output = Dense(1, activation='sigmoid')(f_hidden)
     return Model(input_layer, output)
 
 
-name = "Test1"
+name = "Testprob"
 ds = tu.load_dataset("..\\dataset\\parsed_dataset.csv")
 # remove initial states
 ds = ds[ds.turn_number != 1]
 #remove draws
-ds = ds[ds.]
+ds = ds[ds.match_result_white != ds.match_result_black]
+"""
+0. undersampling delle probabilità 0 -- capiamo
 
+1. cambio da label a probabilità
+2. rimozione pareggi
+3. normalizzazione del turno
+
+"""
 # drop useless columns (4now)
 ds = ds.drop('turn_number', axis=1)
 ds = ds.drop('color_player', axis=1)
 
+ds = ds.groupby(ds.current_state).sum().reset_index()
+ds["white_prob"] = ds["match_result_white"]/(ds["match_result_white"]+ds["match_result_black"])
+
+ds = ds.drop('match_result_white', axis=1)
+ds = ds.drop('match_result_black', axis=1)
+print(ds.head())
+
 input_shape = (9, 9)
 arrayset = ds.to_numpy()
+
 train_set = tu.convert_boardstate(arrayset[:, 0], input_shape)
 # applying minmaxing
 minmax = MinMaxScaler()
 minmax.fit(train_set.reshape(-1, train_set.shape[-1]))
 train_set = minmax.transform(train_set.reshape(-1, train_set.shape[-1])).reshape(train_set.shape)
 #getting labels
-label_list = tu.get_labels(arrayset).astype('float32')
+#label_list = tu.get_labels(arrayset).astype('float32')
+label_list = np.array(arrayset[:,1]).astype('float32')
+print(label_list)
+
 
 learning_rate = 0.0001
 bs = 64
@@ -54,8 +72,12 @@ features = 1
 
 
 X = train_set.reshape((train_set.shape[0], train_set.shape[1], train_set.shape[2], features))
-X_train, X_test, y_train, y_test = train_test_split(X, label_list, stratify=label_list, test_size=0.3, shuffle=True)
-X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, stratify=y_train, test_size=0.2, shuffle=True)
+X_train, X_test, y_train, y_test = train_test_split(X, label_list,
+                                                    #stratify=label_list,
+                                                    test_size=0.3, shuffle=True)
+X_train, X_val, y_train, y_val = train_test_split(X_train, y_train,
+                                                  #stratify=y_train,
+                                                  test_size=0.2, shuffle=True)
 
 model = build_network(X.shape[1:])
 ada = Adam(learning_rate=learning_rate)
