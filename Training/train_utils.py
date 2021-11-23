@@ -14,7 +14,7 @@ def convert_boardstate(statearray, board_shape):
     x = []
     for state in statearray:
         temp = list(map(int, list(state)))
-        x.append(np.array(temp).reshape(board_shape)/3)
+        x.append(np.array(temp).reshape(board_shape))
     return np.asarray(x)
 
 
