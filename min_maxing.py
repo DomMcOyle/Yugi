@@ -108,6 +108,7 @@ class tablut_game:
     need to set the .initial attribute to the initial state; this can
     be done in the constructor."""
 
+
     def __init__(self, neuralpath):
         self.pre_trained = load_model(neuralpath)
 
@@ -176,6 +177,7 @@ class tablut_game:
     def result(self, state, move):  # controllare molto bene
         """Return the state that results from making a move from a state."""
         result_board = state.get_current_board().copy()
+
         if result_board[move[0][0], move[0][1]] != constants.KING:
             result_board[move[1][0], move[1][1]] = state.get_current_player()
             result_board[move[0][0], move[0][1]] = constants.FREE_BOX
@@ -253,6 +255,7 @@ class tablut_game:
             elif player == constants.B_PLAYER and np.where(prediction == max_val)[0][0] == 0:
                 to_return = -prediction[0]
         return to_return
+
 
     def __king_adjacent_to_tower__(self, state):
         king_pos = np.where(state.get_current_board() == constants.KING)
@@ -342,6 +345,8 @@ def alphabeta_search(state, game, d=2, cutoff_test=None, eval_fn=None):
 
     def max_value(state, alpha, beta, depth):
         if cutoff_test(state, depth):
+            print("max: " + str(eval_fn(state)))
+            print(state.get_current_board())
             return eval_fn(state)
         v = -np.inf
         for a in game.actions(state):
@@ -354,6 +359,8 @@ def alphabeta_search(state, game, d=2, cutoff_test=None, eval_fn=None):
 
     def min_value(state, alpha, beta, depth):
         if cutoff_test(state, depth):
+            print("min: " + str(eval_fn(state)))
+            print(state.get_current_board())
             return eval_fn(state)
         v = np.inf
         for a in game.actions(state):
@@ -386,7 +393,7 @@ move = np.array([[6, 5], [6, 4]])
 print(gm.result(cs, move))"""
 
 """ test alphabeta"""
-file_path = "Test1//"
+file_path = "Training//Model//Test1"
 gm = tablut_game(file_path)
 cs = tablut_state(constants.B_PLAYER, np.array(constants.KING_CHECK_STATE))
 print(alphabeta_search(cs, gm))
