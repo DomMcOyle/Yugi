@@ -1,3 +1,5 @@
+import keras.models
+
 import train_utils as tu
 import pandas as pd
 import numpy as np
@@ -8,7 +10,7 @@ from tensorflow.keras.optimizers import Adam
 from keras import callbacks
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_absolute_error, max_error, mean_squared_error
 
 
 def build_network(input_shape):
@@ -25,8 +27,8 @@ def build_network(input_shape):
     output = Dense(1, activation='sigmoid')(f_hidden)
     return Model(input_layer, output)
 
-
-name = "Testprob"
+rs = 42
+name = "Testprob3"
 ds = tu.load_dataset("..\\dataset\\parsed_dataset.csv")
 # remove initial states
 ds = ds[ds.turn_number != 1]
@@ -65,19 +67,19 @@ label_list = np.array(arrayset[:,1]).astype('float32')
 print(label_list)
 
 
-learning_rate = 0.0001
-bs = 64
-epochs = 100
+learning_rate = 0.001
+bs = 32
+epochs = 150
 features = 1
 
 
 X = train_set.reshape((train_set.shape[0], train_set.shape[1], train_set.shape[2], features))
 X_train, X_test, y_train, y_test = train_test_split(X, label_list,
                                                     #stratify=label_list,
-                                                    test_size=0.3, shuffle=True)
+                                                    test_size=0.3, shuffle=True, random_state=rs)
 X_train, X_val, y_train, y_val = train_test_split(X_train, y_train,
                                                   #stratify=y_train,
-                                                  test_size=0.2, shuffle=True)
+                                                  test_size=0.2, shuffle=True, random_state=rs)
 
 model = build_network(X.shape[1:])
 ada = Adam(learning_rate=learning_rate)
@@ -100,7 +102,26 @@ model.fit(X_train,
 prediction = model.predict(X_test)
 print(mean_absolute_error(y_test, prediction))
 
-print(label_list[0:13])
-print(model.predict(X[0:13]))
+#model = keras.models.load_model("Model\\Testprob2")
+#print(label_list[0:])
+#print(model.predict(X[0:]))
 
+"""
+ll = label_list[0:]
+pred = model.predict(X[0:])
+"""
+ll = y_test
+pred = model.predict(X_test)
+print(max_error(ll,pred))
+print(mean_absolute_error(ll,pred))
+print(mean_squared_error(ll,pred))
+ll = ll.reshape((len(ll),1))
+print(ll)
+obb = np.concatenate((ll,pred),axis=1)
+print(obb)
+np.savetxt("obb.txt", obb, '%.5f')
+
+
+#print((X[11]*3).reshape(9,9))
+#print(label_list[11])
 model.save('Model\\' + name)
