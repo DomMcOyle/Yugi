@@ -45,7 +45,7 @@ KING = "K"
 TOWER = "T"
 
 TOWER_POSITION = (4, 4)
-CAMP_POSITION = [(0, 3), (0, 4), (0, 5), (1, 5),
+CAMP_POSITION = [(0, 3), (0, 4), (0, 5), (1, 4),
                  (3, 0), (4, 0), (5, 0), (4, 1),
                  (4, 7), (3, 8), (4, 8), (5, 8),
                  (7, 4), (8, 3), (8, 4), (8, 5)]
@@ -59,3 +59,4 @@ ADJACENT_TO_TOWER_POSITION = [(4, 3), (3, 4), (5, 4), (4, 5)]
 
 JSON_LOOKUP = {'EMPTY': FREE_BOX, 'KING': KING, 'WHITE': W_PLAYER, 'BLACK': B_PLAYER, 'THRONE': TOWER}
 
+CONVERT_DICT = {"O": 0, "T": 0, "W": 1, "B": 2, "K": 3}

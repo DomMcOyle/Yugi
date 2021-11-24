@@ -1,7 +1,7 @@
 # from aima.games import alphabeta_search
 import constants
 import numpy as np
-
+from keras.models import load_model
 
 class tablut_move:
     def __init__(self):
@@ -168,7 +168,7 @@ class tablut_game:
                     to_return.append(np.array([pawn_pos, dest_pos]))
         return np.array(to_return)
 
-    def result(self, state, move):  # chiedere che cosa implementare
+    def result(self, state, move):  # controllare molto bene
         """Return the state that results from making a move from a state."""
         result_board = state.get_current_board()
         if result_board[move[0][0], move[0][1]] != constants.KING:
@@ -229,7 +229,29 @@ class tablut_game:
 
     def utility(self, state, player):  # euristica (da fare)
         """Return the value of this final state to player."""
-        return np.round(np.random.rand())
+        # dimensione in più: reshape(1, 9, 9, 1) conversione da stringa a numero. Guardare branch neural
+        file_path = "Test1//"
+        pre_trained = load_model(file_path)
+        #print(type(state.get_current_board()))
+        new_mat = np.vectorize(constants.CONVERT_DICT.get)(state.get_current_board())
+        #print(type(new_mat))
+        to_predict = np.reshape(new_mat, (1, 9, 9, 1))/3
+
+        prediction = pre_trained.predict(to_predict)
+        #print(prediction)
+        to_return = 0
+        prediction = np.reshape(prediction, 2)
+        if abs(prediction[0] - prediction[1]) > 0.1:
+            max_val = max(prediction)
+            if player == constants.W_PLAYER and np.where(prediction == max_val)[0][0] == 0:
+                to_return = prediction[0]
+            elif player == constants.W_PLAYER and np.where(prediction == max_val)[0][0] == 1:
+                to_return = -prediction[1]
+            elif player == constants.B_PLAYER and np.where(prediction == max_val)[0][0] == 1:
+                to_return = prediction[1]
+            elif player == constants.B_PLAYER and np.where(prediction == max_val)[0][0] == 0:
+                to_return = -prediction[0]
+        return to_return
 
     def __king_adjacent_to_tower__(self, state):
         king_pos = np.where(state.get_current_board() == constants.KING)
@@ -312,13 +334,15 @@ class tablut_game:
                     return self.utility(state, self.to_move(self.initial))
 
 
-def alphabeta_search(state, game, d=4, cutoff_test=None, eval_fn=None):
+def alphabeta_search(state, game, d=2, cutoff_test=None, eval_fn=None):
     """Search game to determine best action; use alpha-beta pruning.
     This version cuts off search and uses an evaluation function."""
     player = game.to_move(state)
 
     def max_value(state, alpha, beta, depth):
         if cutoff_test(state, depth):
+            print("max: " + str(eval_fn(state)))
+            print(state.get_current_board())
             return eval_fn(state)
         v = -np.inf
         for a in game.actions(state):
@@ -331,6 +355,8 @@ def alphabeta_search(state, game, d=4, cutoff_test=None, eval_fn=None):
 
     def min_value(state, alpha, beta, depth):
         if cutoff_test(state, depth):
+            print("min: " + str(eval_fn(state)))
+            print(state.get_current_board())
             return eval_fn(state)
         v = np.inf
         for a in game.actions(state):
@@ -369,8 +395,14 @@ print(alphabeta_search(cs, gm))
 
 
 
+
 """ test actions
 gm = tablut_game()
 cs = tablut_state(constants.W_PLAYER, np.array(constants.KING_CHECK_STATE))
 print(gm.actions(cs))"""
 
+""" test utility 
+gm = tablut_game()
+cs = tablut_state(constants.B_PLAYER, np.array(constants.KING_CHECK_STATE))
+print(gm.utility(cs, cs.get_current_player()))
+"""
