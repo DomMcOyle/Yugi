@@ -1,5 +1,6 @@
 import keras.models
 
+import constants
 import train_utils as tu
 import pandas as pd
 import numpy as np
@@ -12,42 +13,172 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, max_error, mean_squared_error
 
+from hyperas.distributions import uniform, choice
+from hyperas import optim
+from hyperopt import STATUS_OK, Trials, tpe, STATUS_FAIL
 
-def build_network(input_shape):
+
+def data():
+    # IMPORTANT!!! -> initialize module variables before using
+    train_set = tu.TRAIN_SET
+    train_labels = tu.TRAIN_LABEL
+    test_set = tu.TEST_SET
+    test_labels = tu.TEST_LABEL
+    return train_set, train_labels, test_set, test_labels
+
+
+def trial_network(train_set, train_labels, test_set, test_labels):
+    # choosing the hyperparameters to be used
+    dropout_rate = {{uniform(0, 0.2)}}
+    lr = {{uniform(0.0001, 0.01)}}
+
+    # Building the net
+    input_shape = train_set.shape[1:]
+    model = build_network(input_shape=input_shape, dr=dropout_rate)
+    ada = Adam(learning_rate=lr)
+    model.compile(loss='mse', optimizer=ada)
+    print(model.summary())
+
+    # setting an EarlyStopping callback, in order to stop training if the validation loss doesn't get better
+    callbacks_list = [
+        callbacks.EarlyStopping(monitor='val_loss', min_delta=0.0001, patience=10,
+                                restore_best_weights=True),
+    ]
+
+    # Generating the validation set
+    print(train_set.shape)
+    print(train_labels.shape)
+    x_train, x_val, y_train, y_val = train_test_split(train_set, train_labels, test_size=0.2)
+
+    # fitting the model
+    try:
+        h = model.fit(x_train, y_train,
+                      batch_size={{choice(tu.BS)}},
+                      epochs=300,
+                      verbose=2,
+                      callbacks=callbacks_list,
+                      validation_data=(x_val, y_val))
+    except:
+        print("Error in training")
+        return {'status': STATUS_FAIL}
+
+    # the score returned is the best epoch one
+    best_epoch_idx = np.nanargmin(h.history['val_loss'])
+    loss = h.history['loss'][best_epoch_idx]
+    score = h.history['val_loss'][best_epoch_idx]
+
+    # making prediction on the test set
+    prediction = model.predict(test_set)
+    print(len(test_labels))
+    print(len(prediction.shape))
+    mae = mean_absolute_error(test_labels, prediction)
+    maxe = max_error(test_labels, prediction)
+    mse = mean_squared_error(test_labels, prediction)
+
+    print('Last best Score: ', str(tu.BEST_SCORE))
+
+    # Saving the reference to the best model
+    if score < tu.BEST_SCORE:
+        tu.BEST_SCORE = score
+        tu.BEST_MODEL = model
+
+    return {'loss': score, 'status': STATUS_OK, 'n_epochs': len(h.history['loss']),
+            'model': tu.BEST_MODEL, 'train_loss': loss, 'mae': mae, 'maxe': maxe, 'mse': mse}
+
+
+def build_network(input_shape, dr):
     input_layer = Input(input_shape)
-    hidden = Conv2D(filters=16,
+    hidden = Conv2D(filters=32,
                     kernel_size=(2, 2),
                     strides=(1, 1),
                     activation='relu')(input_layer)
     hidden = MaxPooling2D()(hidden)
     f_hidden = Flatten()(hidden)
-    f_hidden = Dropout(rate=0.2)(f_hidden)
+    f_hidden = Dropout(rate=dr)(f_hidden)
     f_hidden = Dense(128, activation='relu')(f_hidden)
     f_hidden = Dense(64, activation='relu')(f_hidden)
     output = Dense(1, activation='sigmoid')(f_hidden)
     return Model(input_layer, output)
 
-rs = 42
-name = "Testprob3"
+
+def hyperparam_search(train_set, train_labels, test_set, test_labels, name):
+    # trials object used to record the results of each iteration
+    trials = Trials()
+
+    # initializing the variables used by data() in order to pass the datasets to the optimization function
+    tu.TRAIN_SET = train_set
+    tu.TRAIN_LABEL = train_labels
+    tu.TEST_SET = test_set
+    tu.TEST_LABEL = test_labels
+
+    tu.BS = [16, 32, 64, 128]
+    # optimization function
+    print("Info: BEGINNING SEARCH...")
+    best_run, best_model = optim.minimize(model=trial_network,
+                                          data=data,
+                                          functions=[trial_network, build_network],
+                                          algo=tpe.suggest,
+                                          max_evals=30,
+                                          trials=trials
+                                          )
+    print("Info: SAVING RESULTS...")
+
+    # Opening a new file and writing the column names
+    output = open( constants.MODEL_STAT_PATH + name + "_stats.csv", "w")
+    output.write("Trials")
+    output.write("\ntrial_id, epochs, score, loss, learning_rate, batch_size, dropout_1," +
+                 "mean_absolute_error, mean_squared_error, max_error")
+    i = 0
+    for trial in trials.trials:
+        if trial['result']['status'] == STATUS_FAIL:
+            # printing stats from a failed iteration
+            output.write("\n%s, -, -, -, -, -, %f, %d, %f, FAIL" % (
+                trial['tid'],
+                trial['misc']['vals']['lr'][0],
+                tu.BS[trial['misc']['vals']['batch_size'][0]],
+                trial['misc']['vals']['dropout_rate'][0]
+            ))
+        else:
+            # printing stats from a succeeded iteration
+            output.write(
+                "\n%s, %d, %f, %f, %f, %d, %f, %f, %f, %f"
+                % (trial['tid'],
+                   trial['result']['n_epochs'],
+                   abs(trial['result']['loss']),
+                   trial['result']['train_loss'],
+                   trial['misc']['vals']['lr'][0],
+                   tu.BS[trial['misc']['vals']['batch_size'][0]],
+                   trial['misc']['vals']['dropout_rate'][0],
+                   trial['result']['mae'],
+                   trial['result']['mse'],
+                   trial['result']['maxe']
+                   ))
+            i = i + 1
+
+    # writing the parameters for the best model
+    output.write("\nBest model\n")
+    output.write(str(best_run))
+    output.close()
+
+    print("Info: SAVING MODEL...")
+    print(best_run)
+    tu.BEST_MODEL.save(constants.MODEL_PATH + name)
+
+# ------------------ BEGIN PREPROCESSING SCRIPT -------------------------
+name = "optimized2"
 ds = tu.load_dataset("..\\dataset\\parsed_dataset.csv")
 # remove initial states
 ds = ds[ds.turn_number != 1]
-#remove draws
+# remove draws
 ds = ds[ds.match_result_white != ds.match_result_black]
-"""
-0. undersampling delle probabilità 0 -- capiamo
 
-1. cambio da label a probabilità
-2. rimozione pareggi
-3. normalizzazione del turno
-
-"""
 # drop useless columns (4now)
 ds = ds.drop('turn_number', axis=1)
 ds = ds.drop('color_player', axis=1)
 
 ds = ds.groupby(ds.current_state).sum().reset_index()
-ds["white_prob"] = ds["match_result_white"]/(ds["match_result_white"]+ds["match_result_black"])
+print(ds.iloc[40]['current_state'])
+ds["white_prob"] = ds["match_result_white"] / (ds["match_result_white"] + ds["match_result_black"])
 
 ds = ds.drop('match_result_white', axis=1)
 ds = ds.drop('match_result_black', axis=1)
@@ -57,71 +188,38 @@ input_shape = (9, 9)
 arrayset = ds.to_numpy()
 
 train_set = tu.convert_boardstate(arrayset[:, 0], input_shape)
-# applying minmaxing
+print(train_set.shape)
+# applying minmaxing !!!WARNING, ALL COLUMNS MUST HAVE AT LEAST ONE VALUE BETWEEN 0 and 3
 minmax = MinMaxScaler()
 minmax.fit(train_set.reshape(-1, train_set.shape[-1]))
+print(minmax.data_min_)
+print(minmax.data_max_)
+print(minmax.data_range_)
 train_set = minmax.transform(train_set.reshape(-1, train_set.shape[-1])).reshape(train_set.shape)
-#getting labels
-#label_list = tu.get_labels(arrayset).astype('float32')
-label_list = np.array(arrayset[:,1]).astype('float32')
-print(label_list)
+print(train_set.shape)
+# ----------------- DATASET PREPARATION AND LEARNING ---------------------
 
+label_list = np.array(arrayset[:, 1]).astype('float32')
 
-learning_rate = 0.001
-bs = 32
-epochs = 150
 features = 1
 
-
 X = train_set.reshape((train_set.shape[0], train_set.shape[1], train_set.shape[2], features))
+"""
 X_train, X_test, y_train, y_test = train_test_split(X, label_list,
-                                                    #stratify=label_list,
-                                                    test_size=0.3, shuffle=True, random_state=rs)
-X_train, X_val, y_train, y_val = train_test_split(X_train, y_train,
-                                                  #stratify=y_train,
-                                                  test_size=0.2, shuffle=True, random_state=rs)
+                                                    test_size=0.3, shuffle=True)
 
-model = build_network(X.shape[1:])
-ada = Adam(learning_rate=learning_rate)
-model.compile(loss='mse', optimizer=ada)
-print(model.summary())
-
-callbacks_list = [
-    callbacks.EarlyStopping(monitor='val_loss', min_delta=0.0001, patience=10,
-                            restore_best_weights=True),
-]
-
-model.fit(X_train,
-          y_train,
-          batch_size=bs,
-          verbose=2,
-          callbacks=callbacks_list,
-          epochs=epochs,
-          validation_data=(X_val, y_val))
-
-prediction = model.predict(X_test)
-print(mean_absolute_error(y_test, prediction))
-
-#model = keras.models.load_model("Model\\Testprob2")
-#print(label_list[0:])
-#print(model.predict(X[0:]))
-
+hyperparam_search(X_train, y_train, X_test, y_test, name)
 """
-ll = label_list[0:]
-pred = model.predict(X[0:])
-"""
-ll = y_test
-pred = model.predict(X_test)
-print(max_error(ll,pred))
-print(mean_absolute_error(ll,pred))
-print(mean_squared_error(ll,pred))
-ll = ll.reshape((len(ll),1))
-print(ll)
-obb = np.concatenate((ll,pred),axis=1)
-print(obb)
-np.savetxt("obb.txt", obb, '%.5f')
-
-
-#print((X[11]*3).reshape(9,9))
-#print(label_list[11])
-model.save('Model\\' + name)
+final = keras.models.load_model(constants.MODEL_PATH+name)
+y= final.predict(X)
+print(mean_absolute_error(label_list, y))
+print(mean_squared_error(label_list, y))
+print(max_error(label_list, y))
+np.savetxt("porcavacca.txt",y, '%.5f')
+from min_maxing import tablut_state
+tablut_state("Boh", (train_set[40]*3).astype('uint8')).render()
+tablut_state("Boh", (train_set[52]*3).astype('uint8')).render()
+tablut_state("Boh", (train_set[6969]*3).astype('uint8')).render()
+tablut_state("Boh", (train_set[4242]*3).astype('uint8')).render()
+tablut_state("Boh", (train_set[1410]*3).astype('uint8')).render()
+tablut_state("Boh", (train_set[10000]*3).astype('uint8')).render()

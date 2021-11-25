@@ -1,3 +1,7 @@
+### PATHS ###
+MODEL_STAT_PATH = "Stats\\"
+MODEL_PATH = "Model\\"
+
 ### CLIENT ###
 NUM_CMD_ARG = 1
 W_NAME = "white"
