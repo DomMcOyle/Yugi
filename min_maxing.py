@@ -387,7 +387,7 @@ def alphabeta_search(state, game, d=2, cutoff_test=None, eval_fn=None):
     beta = np.inf
     best_action = None
     for a in game.actions(state):
-        v = min_value(game.result(state, a), best_score, beta, 1)
+        v = max_value(game.result(state, a), best_score, beta, 1)
         if v > best_score:
             best_score = v
             best_action = a
