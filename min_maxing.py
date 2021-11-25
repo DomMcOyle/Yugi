@@ -66,7 +66,7 @@ class tablut_state:
     def render(self):
         print("Turn: " + str(self.current_player))
         i = 1
-        print("  a  b  c  d  e  f  g  h  i")
+        print("  a b c d e f g h i")
         for row in self.current_board:
             temp = str(row)
             print(str(i) + " " + (temp.replace("[", "").replace("]", "").replace(",", " ").replace("'", "")))
