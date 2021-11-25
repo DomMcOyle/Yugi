@@ -1,4 +1,6 @@
 # from aima.games import alphabeta_search
+import keras.models
+
 import constants
 import numpy as np
 from keras.models import load_model
@@ -107,6 +109,10 @@ class tablut_game:
     need to set the .initial attribute to the initial state; this can
     be done in the constructor."""
 
+
+    def __init__(self, neuralpath):
+        self.pre_trained = load_model(neuralpath)
+
     def __free_box__(self, state, pos):
         if state.get_current_board()[pos[0], pos[1]] != constants.FREE_BOX:
             return False
@@ -171,7 +177,8 @@ class tablut_game:
 
     def result(self, state, move):  # controllare molto bene
         """Return the state that results from making a move from a state."""
-        result_board = state.get_current_board()
+        result_board = state.get_current_board().copy()
+
         if result_board[move[0][0], move[0][1]] != constants.KING:
             result_board[move[1][0], move[1][1]] = state.get_current_player()
             result_board[move[0][0], move[0][1]] = constants.FREE_BOX
@@ -231,15 +238,11 @@ class tablut_game:
     def utility(self, state, player):  # euristica (da fare)
         """Return the value of this final state to player."""
         # dimensione in più: reshape(1, 9, 9, 1) conversione da stringa a numero. Guardare branch neural
-        file_path = "Test1//"
-        pre_trained = load_model(file_path)
-        #print(type(state.get_current_board()))
+
         new_mat = np.vectorize(constants.CONVERT_DICT.get)(state.get_current_board())
-        #print(type(new_mat))
         to_predict = np.reshape(new_mat, (1, 9, 9, 1))/3
 
-        prediction = pre_trained.predict(to_predict)
-        #print(prediction)
+        prediction = self.pre_trained(to_predict, training=False)
         to_return = 0
         prediction = np.reshape(prediction, 2)
         if abs(prediction[0] - prediction[1]) > 0.1:
@@ -253,6 +256,7 @@ class tablut_game:
             elif player == constants.B_PLAYER and np.where(prediction == max_val)[0][0] == 0:
                 to_return = -prediction[0]
         return to_return
+
 
     def __king_adjacent_to_tower__(self, state):
         king_pos = np.where(state.get_current_board() == constants.KING)
@@ -390,7 +394,8 @@ move = np.array([[6, 5], [6, 4]])
 print(gm.result(cs, move))"""
 
 """ test alphabeta"""
-gm = tablut_game()
+file_path = "Training//Model//Test1"
+gm = tablut_game(file_path)
 cs = tablut_state(constants.B_PLAYER, np.array(constants.KING_CHECK_STATE))
 print(alphabeta_search(cs, gm))
 

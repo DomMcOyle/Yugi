@@ -40,6 +40,7 @@ KING_CHECK_STATE = [list("OOOOOOOOO"),
                      list("OOOOOOOOO"),
                      list("OOOOOOOOO"),
                      list("OOOOOOOOO")]
+
 ALPH = list("abcdefghi")
 KING = "K"
 TOWER = "T"
@@ -60,3 +61,4 @@ ADJACENT_TO_TOWER_POSITION = [(4, 3), (3, 4), (5, 4), (4, 5)]
 JSON_LOOKUP = {'EMPTY': FREE_BOX, 'KING': KING, 'WHITE': W_PLAYER, 'BLACK': B_PLAYER, 'THRONE': TOWER}
 
 CONVERT_DICT = {"O": 0, "T": 0, "W": 1, "B": 2, "K": 3}
+
