@@ -3,6 +3,7 @@ import constants
 import numpy as np
 from keras.models import load_model
 
+
 class tablut_move:
     def __init__(self):
         self.lut = np.array(constants.ALPH)  # lookuptable
@@ -23,7 +24,7 @@ class tablut_move:
         return to_return
 
     @staticmethod
-    def to_json_dict(from_,to,turn, convert=True):
+    def to_json_dict(from_, to, turn, convert=True):
         to_send = dict()
         if convert:
             move = tablut_move()
