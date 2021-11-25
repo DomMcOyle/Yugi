@@ -109,8 +109,11 @@ class tablut_game:
     need to set the .initial attribute to the initial state; this can
     be done in the constructor."""
 
-    def __init__(self, neuralpath = "Test1//"):
-        self.pre_trained = load_model(neuralpath)
+    def __init__(self, neuralpath="Test1//"):
+        if neuralpath is None:
+            self.pre_trained = None
+        else:
+            self.pre_trained = load_model(neuralpath)
 
     def __free_box__(self, state, pos):
         if state.get_current_board()[pos[0], pos[1]] != constants.FREE_BOX:
@@ -248,7 +251,8 @@ class tablut_game:
                     result_board[king_pos_rows, king_pos_cols] = constants.FREE_BOX
                     # black wins by capturing the king adjacent to the tower and surrounded by
                     # 3 pawns
-                elif not self.__king_adjacent_to_tower__(result_state) and self.__king_surrounded_num__(result_state) == 2:
+                elif not self.__king_adjacent_to_tower__(result_state) and self.__king_surrounded_num__(result_state) == 2 \
+                        and self.__king_eaten_normal__(result_state):
                     result_board[king_pos_rows, king_pos_cols] = constants.FREE_BOX
                     # black wins by capturing the king as a normal pawn
 
@@ -276,6 +280,17 @@ class tablut_game:
             elif player == constants.B_PLAYER and np.where(prediction == max_val)[0][0] == 0:
                 to_return = -prediction[0]
         return to_return
+
+    def __king_eaten_normal__(self, state):
+        king_pos = np.where(state.get_current_board() == constants.KING)
+        king_pos_rows = king_pos[0]
+        king_pos_cols = king_pos[1]
+        board = state.get_current_board()
+        try:
+            return board[king_pos_rows + 1, king_pos_cols] == board[king_pos_rows - 1, king_pos_cols] == constants.B_PLAYER \
+                or board[king_pos_rows, king_pos_cols + 1] == board[king_pos_rows, king_pos_cols - 1] == constants.B_PLAYER
+        except IndexError:
+            return False
 
     def __king_adjacent_to_tower__(self, state):
         king_pos = np.where(state.get_current_board() == constants.KING)
@@ -349,7 +364,7 @@ class tablut_game:
                     return self.utility(state, self.to_move(self.initial))
 
 
-def alphabeta_search(state, game, d=2, cutoff_test=None, eval_fn=None):
+def alphabeta_search(state, game, choosing_player, d=2, cutoff_test=None, eval_fn=None):
     """Search game to determine best action; use alpha-beta pruning.
     This version cuts off search and uses an evaluation function."""
     player = game.to_move(state)
@@ -358,7 +373,7 @@ def alphabeta_search(state, game, d=2, cutoff_test=None, eval_fn=None):
         if cutoff_test(state, depth):
             #print("max: " + str(eval_fn(state)))
             #print(state.get_current_board())
-            return eval_fn(state)
+            return eval_fn(state, choosing_player, depth)
         v = -np.inf
         for a in game.actions(state):
             v = max(v, min_value(game.result(state, a),
@@ -372,7 +387,7 @@ def alphabeta_search(state, game, d=2, cutoff_test=None, eval_fn=None):
         if cutoff_test(state, depth):
             #print("min: " + str(eval_fn(state)))
             #print(state.get_current_board())
-            return eval_fn(state)
+            return eval_fn(state, choosing_player, depth)
         v = np.inf
         for a in game.actions(state):
             v = min(v, max_value(game.result(state, a),
@@ -390,7 +405,7 @@ def alphabeta_search(state, game, d=2, cutoff_test=None, eval_fn=None):
     beta = np.inf
     best_action = None
     for a in game.actions(state):
-        v = max_value(game.result(state, a), best_score, beta, 1)
+        v = min_value(game.result(state, a), best_score, beta, 1)
         if v > best_score:
             best_score = v
             best_action = a
