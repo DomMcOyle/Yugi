@@ -97,7 +97,7 @@ class tablut_state:
             for c in range(0, len(board[0])):
                 board[r][c] = constants.JSON_LOOKUP[board[r][c]]
 
-        return tablut_state(player, board)
+        return tablut_state(player, np.array(board))
 
 
 class tablut_game:
@@ -126,6 +126,9 @@ class tablut_game:
             a list of moves, each move is a couple (starting_position, ending_position)
         """
         pos = np.where(state.get_current_board() == state.get_current_player())
+        #print(state.get_current_player())
+        #print("Positions: " + str(pos))
+        #print("Board: " + str(state.get_current_board()))
         pos_rows = pos[0]
         pos_cols = pos[1]
         if state.get_current_player() == constants.W_PLAYER:
@@ -353,8 +356,8 @@ def alphabeta_search(state, game, d=2, cutoff_test=None, eval_fn=None):
 
     def max_value(state, alpha, beta, depth):
         if cutoff_test(state, depth):
-            print("max: " + str(eval_fn(state)))
-            print(state.get_current_board())
+            #print("max: " + str(eval_fn(state)))
+            #print(state.get_current_board())
             return eval_fn(state)
         v = -np.inf
         for a in game.actions(state):
@@ -367,8 +370,8 @@ def alphabeta_search(state, game, d=2, cutoff_test=None, eval_fn=None):
 
     def min_value(state, alpha, beta, depth):
         if cutoff_test(state, depth):
-            print("min: " + str(eval_fn(state)))
-            print(state.get_current_board())
+            #print("min: " + str(eval_fn(state)))
+            #print(state.get_current_board())
             return eval_fn(state)
         v = np.inf
         for a in game.actions(state):
@@ -402,18 +405,19 @@ result_state = gm.result(cs, move)
 print(result_state)
 """
 
-""" test alphabeta 
-file_path = "Training//Model//Test1"
-gm = tablut_game(file_path)
+""" test alphabeta
+#file_path = "Training//Model//Test1"
+gm = tablut_game()
 cs = tablut_state(constants.B_PLAYER, np.array(constants.KING_CHECK_STATE))
 print(alphabeta_search(cs, gm))
 """
 
 
-""" test actions
+""" test actions 
 gm = tablut_game()
 cs = tablut_state(constants.W_PLAYER, np.array(constants.KING_CHECK_STATE))
-print(gm.actions(cs))"""
+print(gm.actions(cs))
+"""
 
 """ test utility
 gm = tablut_game()

@@ -3,6 +3,7 @@ from client import Client
 import traceback
 import constants
 import time
+import min_maxing
 
 class AIClient(Client):
     def __init__(self, player, name="Yugi", timeout=60, ipAddress="localhost"):
@@ -10,6 +11,7 @@ class AIClient(Client):
 
     def run(self):
         print("Chosen player: " + self.player)
+        gm = min_maxing.tablut_game()
         try:
             self.declare_name()
         except:
@@ -31,9 +33,10 @@ class AIClient(Client):
                     """
                     !!!INSERT HEURISTIC HERE !!!
                     """
-                    from_ = input()
-                    to = input()
-                    self.write(min_maxing.tablut_move.to_json_dict(from_, to, self.player, convert=False))
+                    move_to_do = min_maxing.alphabeta_search(self.get_current_state(), gm)
+                    from_ = move_to_do[0]
+                    to = move_to_do[1]
+                    self.write(min_maxing.tablut_move.to_json_dict(from_, to, self.player))
                     # input move
                 elif self.get_current_state().get_current_player() == opponent:
                     print("Waiting the opponent's End Phase...")
@@ -51,3 +54,4 @@ class AIClient(Client):
         except:
             traceback.print_exc()
             return
+
