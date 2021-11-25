@@ -109,8 +109,7 @@ class tablut_game:
     need to set the .initial attribute to the initial state; this can
     be done in the constructor."""
 
-
-    def __init__(self, neuralpath):
+    def __init__(self, neuralpath = "Test1//"):
         self.pre_trained = load_model(neuralpath)
 
     def __free_box__(self, state, pos):
@@ -232,6 +231,24 @@ class tablut_game:
                     result_board[move[1][0], move[1][1] - 1] = constants.FREE_BOX
         except:
             pass
+        # king capture
+        king_pos = np.where(result_board == constants.KING)
+        king_pos_rows = king_pos[0]
+        king_pos_cols = king_pos[1]
+        result_state = tablut_state(state.negate_current_player(), result_board)
+        if state.get_current_player() == constants.B_PLAYER:
+            if ((king_pos_rows, king_pos_cols) == constants.TOWER_POSITION
+                    and self.__king_surrounded_num__(result_state) == 4):
+                result_board[king_pos_rows, king_pos_cols] = constants.TOWER # black wins by capturing the king in the tower
+            else:
+                if self.__king_adjacent_to_tower__(result_state) and self.__king_surrounded_num__(result_state) == 3:
+                    result_board[king_pos_rows, king_pos_cols] = constants.FREE_BOX
+                    # black wins by capturing the king adjacent to the tower and surrounded by
+                    # 3 pawns
+                elif not self.__king_adjacent_to_tower__(result_state) and self.__king_surrounded_num__(result_state) == 2:
+                    result_board[king_pos_rows, king_pos_cols] = constants.FREE_BOX
+                    # black wins by capturing the king as a normal pawn
+
         state_to_return = tablut_state(state.negate_current_player(), result_board)
         return state_to_return
 
@@ -256,7 +273,6 @@ class tablut_game:
             elif player == constants.B_PLAYER and np.where(prediction == max_val)[0][0] == 0:
                 to_return = -prediction[0]
         return to_return
-
 
     def __king_adjacent_to_tower__(self, state):
         king_pos = np.where(state.get_current_board() == constants.KING)
@@ -299,19 +315,10 @@ class tablut_game:
         king_pos_rows = king_pos[0]
         king_pos_cols = king_pos[1]
         # white wins, the king has escaped
-
-        if (king_pos_rows, king_pos_cols) in constants.ESCAPE_POSITION:
+        if king_pos_rows.shape[0] == 0 and king_pos_cols.shape[0] == 0:
             return True
-        else:
-            if ((king_pos_rows, king_pos_cols) == constants.TOWER_POSITION
-                    and self.__king_surrounded_num__(state) == 4):
-                return True  # black wins by capturing the king in the tower
-            else:
-                if self.__king_adjacent_to_tower__(state) and self.__king_surrounded_num__(state) == 3:
-                    return True # black wins by capturing the king adjacent to the tower and surrounded by
-                                # 3 pawns
-                elif not self.__king_adjacent_to_tower__(state) and self.__king_surrounded_num__(state) == 2:
-                    return True # black wins by capturing the king as a normal pawn
+        elif (king_pos_rows, king_pos_cols) in constants.ESCAPE_POSITION:
+            return True
         return False
 
         # return not self.actions(state)
@@ -387,19 +394,20 @@ def alphabeta_search(state, game, d=2, cutoff_test=None, eval_fn=None):
     return best_action
 
 
-""" test result
+""" test result 
 gm = tablut_game()
 cs = tablut_state(constants.B_PLAYER, np.array(constants.KING_CHECK_STATE))
-move = np.array([[6, 5], [6, 4]])
-print(gm.result(cs, move))"""
+move = np.array([[4, 1], [4, 3]])
+result_state = gm.result(cs, move)
+print(result_state)
+"""
 
-""" test alphabeta"""
+""" test alphabeta 
 file_path = "Training//Model//Test1"
 gm = tablut_game(file_path)
 cs = tablut_state(constants.B_PLAYER, np.array(constants.KING_CHECK_STATE))
 print(alphabeta_search(cs, gm))
-
-
+"""
 
 
 """ test actions
@@ -407,8 +415,14 @@ gm = tablut_game()
 cs = tablut_state(constants.W_PLAYER, np.array(constants.KING_CHECK_STATE))
 print(gm.actions(cs))"""
 
-""" test utility 
+""" test utility
 gm = tablut_game()
 cs = tablut_state(constants.B_PLAYER, np.array(constants.KING_CHECK_STATE))
 print(gm.utility(cs, cs.get_current_player()))
+"""
+
+""" test terminal 
+gm = tablut_game()
+cs = tablut_state(constants.W_PLAYER, np.array(constants.KING_CHECK_STATE))
+print(gm.terminal_test(result_state))
 """

@@ -33,10 +33,10 @@ INITIAL_STATE = [list("OOOBBBOOO"),
                  list("OOOBBBOOO")]
 KING_CHECK_STATE = [list("OOOOOOOOO"),
                      list("OOOOOOOOO"),
-                     list("OOKBOOOOO"),
-                     list("OBOOOOOOO"),
-                     list("OOOOTOOOO"),
                      list("OOOOOOOOO"),
+                     list("OOOOBOOOO"),
+                     list("OBOOKBOOO"),
+                     list("OOOOBOOOO"),
                      list("OOOOOOOOO"),
                      list("OOOOOOOOO"),
                      list("OOOOOOOOO")]
