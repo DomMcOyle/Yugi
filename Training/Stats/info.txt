@@ -40,6 +40,7 @@ Optimized2
     f_hidden = Dense(64, activation='relu')(f_hidden)
     output = Dense(1, activation='sigmoid')(f_hidden)
     return Model(input_layer, output)
+
 Optimized3
 #as optimized 1 but with filters=64
 
