@@ -1,9 +1,9 @@
 # from aima.games import alphabeta_search
-import keras.models
 
 import constants
 import numpy as np
 from keras.models import load_model
+import time
 
 
 class tablut_move:
@@ -12,8 +12,8 @@ class tablut_move:
 
     def from_num_to_notation(self, num_move):
         # move converter, from couple of integers in range [0,8] to standard notation (string)
-        chosen_column = self.lut[num_move[0]]
-        chosen_row = num_move[1] + 1
+        chosen_column = self.lut[num_move[1]]
+        chosen_row = num_move[0] + 1
         to_return = chosen_column + str(chosen_row)
         return to_return
 
@@ -22,7 +22,7 @@ class tablut_move:
         notation_move_to_use = list(notation_move)
         chosen_column = np.where(self.lut == notation_move_to_use[0])[0][0]
         chosen_row = int(notation_move_to_use[1]) - 1
-        to_return = (chosen_column, chosen_row)
+        to_return = (chosen_row, chosen_column)
         return to_return
 
     @staticmethod
@@ -108,7 +108,7 @@ class tablut_game:
     successors or you can inherit their default methods. You will also
     need to set the .initial attribute to the initial state; this can
     be done in the constructor."""
-
+    # neuralpath="Test1//" "optimized2//"
     def __init__(self, neuralpath="Test1//"):
         if neuralpath is None:
             self.pre_trained = None
@@ -121,6 +121,16 @@ class tablut_game:
         else:
             return True
 
+    def __inbetween__(self, pawn_pos, dest_pos):
+        to_return = []
+        if pawn_pos[0] == dest_pos[0]:
+            min_val = min((pawn_pos[1], dest_pos[1]))
+            return [(pawn_pos[0], min_val + i) for i in range(0, abs(pawn_pos[1] - dest_pos[1]) + 1)]
+        if pawn_pos[1] == dest_pos[1]:
+            min_val = min((pawn_pos[0], dest_pos[0]))
+            return [(pawn_pos[1], min_val + i) for i in range(0, abs(pawn_pos[0] - dest_pos[0]) + 1)]
+
+
     def actions(self, state):
         """
         given a state, returns all the possible moves for the pawns belonging to the current player
@@ -129,9 +139,6 @@ class tablut_game:
             a list of moves, each move is a couple (starting_position, ending_position)
         """
         pos = np.where(state.get_current_board() == state.get_current_player())
-        #print(state.get_current_player())
-        #print("Positions: " + str(pos))
-        #print("Board: " + str(state.get_current_board()))
         pos_rows = pos[0]
         pos_cols = pos[1]
         if state.get_current_player() == constants.W_PLAYER:
@@ -177,7 +184,16 @@ class tablut_game:
         for pawn_pos in move_dict.keys():
             for dest_pos in move_dict.get(pawn_pos):
                 if pawn_pos in fields or (dest_pos not in fields and dest_pos != constants.TOWER_POSITION):
-                    to_return.append(np.array([pawn_pos, dest_pos]))
+                    to_return.append([pawn_pos, dest_pos])
+                if pawn_pos in fields and dest_pos in fields:
+                    if pawn_pos[0] == dest_pos[0]:
+                        if abs(pawn_pos[1] - dest_pos[1]) < constants.CITADEL_THRESHOLD:
+                            to_return.append([pawn_pos, dest_pos])
+                if pawn_pos not in fields and dest_pos not in fields:
+                    for inb_elem in self.__inbetween__(pawn_pos, dest_pos):
+                        if inb_elem in constants.CAMP_POSITION:
+                            if [pawn_pos, dest_pos] in to_return:
+                                to_return.remove([pawn_pos, dest_pos])
         return np.array(to_return)
 
     def result(self, state, move):  # controllare molto bene
@@ -199,7 +215,7 @@ class tablut_game:
         try:
             if result_board[move[1][0] + 1, move[1][1]] == state.negate_current_player():
                 if (result_board[move[1][0] + 2, move[1][1]] == state.get_current_player()
-                        or (move[1][0] + 2, move[1][1]) in constants.CAMP_POSITION
+                        or (move[1][0] + 2, move[1][1]) in constants.CAMP_POSITION_FOR_CAPTURES
                         or (move[1][0] + 2, move[1][1]) == constants.TOWER_POSITION
                         or (state.get_current_player() == constants.W_PLAYER
                             and (result_board[move[1][0] + 2, move[1][1]] == constants.KING))):
@@ -209,7 +225,7 @@ class tablut_game:
         try:
             if result_board[move[1][0] - 1, move[1][1]] == state.negate_current_player():
                 if (result_board[move[1][0] - 2, move[1][1]] == state.get_current_player()
-                        or (move[1][0] - 2, move[1][1]) in constants.CAMP_POSITION
+                        or (move[1][0] - 2, move[1][1]) in constants.CAMP_POSITION_FOR_CAPTURES
                         or (move[1][0] - 2, move[1][1]) == constants.TOWER_POSITION
                         or (state.get_current_player() == constants.W_PLAYER
                             and (result_board[move[1][0] - 2, move[1][1]] == constants.KING))):
@@ -219,7 +235,7 @@ class tablut_game:
         try:
             if result_board[move[1][0], move[1][1] + 1] == state.negate_current_player():
                 if (result_board[move[1][0], move[1][1] + 2] == state.get_current_player()
-                        or (move[1][0], move[1][1] + 2) in constants.CAMP_POSITION
+                        or (move[1][0], move[1][1] + 2) in constants.CAMP_POSITION_FOR_CAPTURES
                         or (move[1][0], move[1][1] + 2) == constants.TOWER_POSITION
                         or (state.get_current_player() == constants.W_PLAYER
                             and (result_board[move[1][0], move[1][1] + 2] == constants.KING))):
@@ -229,7 +245,7 @@ class tablut_game:
         try:
             if result_board[move[1][0], move[1][1] - 1] == state.negate_current_player():
                 if (result_board[move[1][0], move[1][1] - 2] == state.get_current_player()
-                        or (move[1][0], move[1][1] - 2) in constants.CAMP_POSITION
+                        or (move[1][0], move[1][1] - 2) in constants.CAMP_POSITION_FOR_CAPTURES
                         or (move[1][0], move[1][1] - 2) == constants.TOWER_POSITION
                         or (state.get_current_player() == constants.W_PLAYER
 
@@ -261,6 +277,7 @@ class tablut_game:
 
     def utility(self, state, player):  # euristica (da fare)
         """Return the value of this final state to player."""
+
         # dimensione in più: reshape(1, 9, 9, 1) conversione da stringa a numero. Guardare branch neural
 
         new_mat = np.vectorize(constants.CONVERT_DICT.get)(state.get_current_board())
@@ -279,6 +296,27 @@ class tablut_game:
                 to_return = prediction[1]
             elif player == constants.B_PLAYER and np.where(prediction == max_val)[0][0] == 0:
                 to_return = -prediction[0]
+
+        return to_return
+
+    def utility_2(self, state, player):
+        """Return the value of this final state to player."""
+        # dimensione in più: reshape(1, 9, 9, 1) conversione da stringa a numero. Guardare branch neural
+
+        new_mat = np.vectorize(constants.CONVERT_DICT.get)(state.get_current_board())
+        to_predict = np.reshape(new_mat, (1, 9, 9, 1)) / 3
+
+        prediction = self.pre_trained(to_predict, training=False)
+        to_return = 0
+        prediction = prediction.numpy()[0][0]
+        if player == constants.W_PLAYER and prediction >= 0.5:
+            to_return = prediction
+        elif player == constants.W_PLAYER and prediction < 0.5:
+            to_return = -(1 - prediction)
+        elif player == constants.B_PLAYER and prediction < 0.5:
+            to_return = 1-prediction
+        elif player == constants.B_PLAYER and prediction >= 0.5:
+            to_return = -prediction
         return to_return
 
     def __king_eaten_normal__(self, state):
@@ -367,12 +405,12 @@ class tablut_game:
 def alphabeta_search(state, game, choosing_player, d=2, cutoff_test=None, eval_fn=None):
     """Search game to determine best action; use alpha-beta pruning.
     This version cuts off search and uses an evaluation function."""
+    start = time.time()
     player = game.to_move(state)
 
     def max_value(state, alpha, beta, depth):
+        #print(depth)
         if cutoff_test(state, depth):
-            #print("max: " + str(eval_fn(state)))
-            #print(state.get_current_board())
             return eval_fn(state, choosing_player, depth)
         v = -np.inf
         for a in game.actions(state):
@@ -384,9 +422,8 @@ def alphabeta_search(state, game, choosing_player, d=2, cutoff_test=None, eval_f
         return v
 
     def min_value(state, alpha, beta, depth):
+        #print(depth)
         if cutoff_test(state, depth):
-            #print("min: " + str(eval_fn(state)))
-            #print(state.get_current_board())
             return eval_fn(state, choosing_player, depth)
         v = np.inf
         for a in game.actions(state):
@@ -400,7 +437,7 @@ def alphabeta_search(state, game, choosing_player, d=2, cutoff_test=None, eval_f
     # Body of alpha_beta_cutoff_search starts here:
     # The default test cuts off at depth d or at a terminal state
     cutoff_test = (cutoff_test or (lambda state, depth: depth > d or game.terminal_test(state)))
-    eval_fn = eval_fn or (lambda state: game.utility(state, player))
+    eval_fn = eval_fn or (lambda state, choosing_player, depth: game.utility(state, player))
     best_score = -np.inf
     beta = np.inf
     best_action = None
@@ -409,16 +446,18 @@ def alphabeta_search(state, game, choosing_player, d=2, cutoff_test=None, eval_f
         if v > best_score:
             best_score = v
             best_action = a
+    print("heuristic evaluation in seconds: " + str(time.time() - start))
     return best_action
 
 
 """ test result 
 gm = tablut_game()
-cs = tablut_state(constants.B_PLAYER, np.array(constants.KING_CHECK_STATE))
-move = np.array([[4, 1], [4, 3]])
+cs = tablut_state(constants.W_PLAYER, np.array(constants.KING_CHECK_STATE))
+move = np.array([[6, 7], [6, 8]])
 result_state = gm.result(cs, move)
 print(result_state)
 """
+
 
 """ test alphabeta
 #file_path = "Training//Model//Test1"
@@ -431,6 +470,7 @@ print(alphabeta_search(cs, gm))
 """ test actions 
 gm = tablut_game()
 cs = tablut_state(constants.W_PLAYER, np.array(constants.KING_CHECK_STATE))
+#print(gm.__inbetween__(np.array([0,8]), np.array([0, 0])))
 print(gm.actions(cs))
 """
 
@@ -438,6 +478,12 @@ print(gm.actions(cs))
 gm = tablut_game()
 cs = tablut_state(constants.B_PLAYER, np.array(constants.KING_CHECK_STATE))
 print(gm.utility(cs, cs.get_current_player()))
+"""
+
+""" test utility_2 
+gm = tablut_game()
+cs = tablut_state(constants.B_PLAYER, np.array(constants.KING_CHECK_STATE))
+print(gm.utility_2(cs, cs.get_current_player()))
 """
 
 """ test terminal 

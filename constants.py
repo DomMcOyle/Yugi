@@ -31,15 +31,26 @@ INITIAL_STATE = [list("OOOBBBOOO"),
                  list("OOOOWOOOO"),
                  list("OOOOBOOOO"),
                  list("OOOBBBOOO")]
-KING_CHECK_STATE = [list("OOOOOOOOO"),
+
+"""KING_CHECK_STATE = [list("OOOOOOOOO"),
                      list("OOOOOOOOO"),
                      list("OOOOOOOOO"),
-                     list("OOOOBOOOO"),
-                     list("OBOOKBOOO"),
-                     list("OOOOBOOOO"),
+                     list("OOOOOOOOB"),
+                     list("OOOOTOOBB"),
+                     list("OOOOOOOOB"),
+                     list("OOOOOOOWO"),
                      list("OOOOOOOOO"),
-                     list("OOOOOOOOO"),
-                     list("OOOOOOOOO")]
+                     list("OOOOOOOOO")]"""
+
+KING_CHECK_STATE = [list("OOOOOOBOO"),
+                    list("BOOOOOOOO"),
+                    list("WOOOOOWOB"),
+                    list("OOOOOOWOO"),
+                    list("OOWKTWOOO"),
+                    list("OOOOOOOOO"),
+                    list("OOWWOOOOB"),
+                    list("OOBBBOOWB"),
+                    list("OOOOOOOBO")]
 
 ALPH = list("abcdefghi")
 KING = "K"
@@ -50,6 +61,11 @@ CAMP_POSITION = [(0, 3), (0, 4), (0, 5), (1, 4),
                  (3, 0), (4, 0), (5, 0), (4, 1),
                  (4, 7), (3, 8), (4, 8), (5, 8),
                  (7, 4), (8, 3), (8, 4), (8, 5)]
+
+CAMP_POSITION_FOR_CAPTURES =    [(0, 3), (0, 5), (1, 4),
+                                (3, 0), (5, 0), (4, 1),
+                                (4, 7), (3, 8), (5, 8),
+                                (7, 4), (8, 3), (8, 5)]
 
 ESCAPE_POSITION = [(0, 1), (0, 2), (1, 0), (2, 0),
                     (0, 6), (0, 7), (1, 8), (2, 8),
@@ -62,3 +78,4 @@ JSON_LOOKUP = {'EMPTY': FREE_BOX, 'KING': KING, 'WHITE': W_PLAYER, 'BLACK': B_PL
 
 CONVERT_DICT = {"O": 0, "T": 0, "W": 1, "B": 2, "K": 3}
 
+CITADEL_THRESHOLD = 5

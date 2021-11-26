@@ -33,10 +33,12 @@ class AIClient(Client):
                     """
                     !!!INSERT HEURISTIC HERE !!!
                     """
-                    move_to_do = min_maxing.alphabeta_search(self.get_current_state(), gm)
+                    move_to_do = min_maxing.alphabeta_search(self.get_current_state(), gm, self.player)
+                    print("move: " + str(move_to_do))
                     from_ = move_to_do[0]
                     to = move_to_do[1]
                     self.write(min_maxing.tablut_move.to_json_dict(from_, to, self.player))
+                    print("sent")
                     # input move
                 elif self.get_current_state().get_current_player() == opponent:
                     print("Waiting the opponent's End Phase...")
