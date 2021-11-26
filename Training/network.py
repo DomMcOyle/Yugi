@@ -111,7 +111,7 @@ def hyperparam_search(train_set, train_labels, test_set, test_labels, name):
     tu.TEST_SET = test_set
     tu.TEST_LABEL = test_labels
 
-    tu.BS = [16, 32, 64, 128]
+    tu.BS = [32, 64, 128, 256, 512]
     # optimization function
     print("Info: BEGINNING SEARCH...")
     best_run, best_model = optim.minimize(model=trial_network,
@@ -165,8 +165,8 @@ def hyperparam_search(train_set, train_labels, test_set, test_labels, name):
     tu.BEST_MODEL.save(constants.MODEL_PATH + name)
 
 # ------------------ BEGIN PREPROCESSING SCRIPT -------------------------
-name = "optimized2v2"
-ds = tu.load_dataset("..\\dataset\\parsed_dataset_v2.csv")
+name = "optimized2v3"
+ds = tu.load_dataset("..\\dataset\\parsed_dataset_v3.csv")
 # remove initial states
 ds = ds[ds.turn_number != 1]
 # remove draws
@@ -187,12 +187,14 @@ arrayset = ds.to_numpy()
 
 train_set = tu.convert_boardstate(arrayset[:, 0], input_shape)
 print(train_set.shape)
+"""
 # applying minmaxing !!!WARNING, ALL COLUMNS MUST HAVE AT LEAST ONE VALUE BETWEEN 0 and 3
-"""minmax = MinMaxScaler()
+minmax = MinMaxScaler()
 minmax.fit(train_set.reshape(-1, train_set.shape[-1]))
 train_set = minmax.transform(train_set.reshape(-1, train_set.shape[-1])).reshape(train_set.shape)
 """
-train_set = train_set/3
+train_set = train_set-1
+train_set = train_set/2
 # ----------------- DATASET PREPARATION AND LEARNING ---------------------
 
 label_list = np.array(arrayset[:, 1]).astype('float32')
@@ -200,7 +202,7 @@ label_list = np.array(arrayset[:, 1]).astype('float32')
 features = 1
 
 X = train_set.reshape((train_set.shape[0], train_set.shape[1], train_set.shape[2], features))
-
+"""
 X_train, X_test, y_train, y_test = train_test_split(X, label_list,
                                                     test_size=0.3, shuffle=True)
 
@@ -208,15 +210,38 @@ hyperparam_search(X_train, y_train, X_test, y_test, name)
 """
 final = keras.models.load_model(constants.MODEL_PATH+name)
 y= final.predict(X)
+"""
+initial = np.array([
+    [0, 0, 0, 1, 1, 1, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 2, 0, 0, 0, 0],
+    [1, 0, 0, 0, 2, 0, 0, 0, 1],
+    [1, 1, 2, 2, 3, 2, 2, 1, 1],
+    [1, 0, 0, 0, 2, 0, 0, 0, 1],
+    [0, 0, 0, 0, 2, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 1, 1, 1, 0, 0, 0]
+])-1
+initial = initial/2
+initial = np.reshape(initial, (1, initial.shape[0], initial.shape[1], 1))
+y = final.predict(initial)
+print(y)
 
-
+"""
 print(mean_absolute_error(label_list, y))
 print(mean_squared_error(label_list, y))
 print(max_error(label_list, y))
 np.savetxt("porcavacca.txt",y, '%.5f')
 from min_maxing import tablut_state
-tablut_state("Boh", (train_set[10]*3).astype('uint8')).render()
-tablut_state("Boh", (train_set[20]*3).astype('uint8')).render()
-tablut_state("Boh", (train_set[30]*3).astype('uint8')).render()
-tablut_state("Boh", (train_set[45]*3).astype('uint8')).render()
-"""
+print(label_list[10402])
+print(y[10402])
+tablut_state("Boh", (train_set[10402]*2+1).astype('uint8')).render()
+print(label_list[215])
+print(y[215])
+tablut_state("Boh", (train_set[215]*2+1).astype('uint8')).render()
+print(label_list[6969])
+print(y[6969])
+tablut_state("Boh", (train_set[6969]*2+1).astype('uint8')).render()
+print(label_list[42000])
+print(y[42000])
+tablut_state("Boh", (train_set[42000]*2+1).astype('uint8')).render()
