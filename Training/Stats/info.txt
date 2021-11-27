@@ -1,0 +1,90 @@
+Optimized1-2
+    input_layer = Input(input_shape)
+    hidden = Conv2D(filters=16,
+                    kernel_size=(2, 2),
+                    strides=(1, 1),
+                    activation='relu')(input_layer)
+    hidden = MaxPooling2D()(hidden)
+    f_hidden = Flatten()(hidden)
+    f_hidden = Dense(128, activation='relu')(f_hidden)
+    f_hidden = Dropout(rate=dr)(f_hidden)
+    f_hidden = Dense(64, activation='relu')(f_hidden)
+    f_hidden = Dense(32, activation='relu')(f_hidden)
+    output = Dense(1, activation='sigmoid')(f_hidden)
+    return Model(input_layer, output)
+
+Optimized1
+    input_layer = Input(input_shape)
+    hidden = Conv2D(filters=16,
+                    kernel_size=(2, 2),
+                    strides=(1, 1),
+                    activation='relu')(input_layer)
+    hidden = MaxPooling2D()(hidden)
+    f_hidden = Flatten()(hidden)
+	f_hidden = Dropout(rate=dr)(f_hidden)
+    f_hidden = Dense(128, activation='relu')(f_hidden)
+    f_hidden = Dense(64, activation='relu')(f_hidden)
+    output = Dense(1, activation='sigmoid')(f_hidden)
+    return Model(input_layer, output)
+	
+Optimized2
+    input_layer = Input(input_shape)
+    hidden = Conv2D(filters=32,
+                    kernel_size=(2, 2),
+                    strides=(1, 1),
+                    activation='relu')(input_layer)
+    hidden = MaxPooling2D()(hidden)
+    f_hidden = Flatten()(hidden)
+	f_hidden = Dropout(rate=dr)(f_hidden)
+    f_hidden = Dense(128, activation='relu')(f_hidden)
+    f_hidden = Dense(64, activation='relu')(f_hidden)
+    output = Dense(1, activation='sigmoid')(f_hidden)
+    return Model(input_layer, output)
+
+Optimized3
+#as optimized 1 but with filters=64
+
+Test1
+	# tested on a different dataset, the predicted feature were
+	# (0,0) for draw, (1,0) for white win and (0,1) for black win
+	# 100 epochs
+	# 0.0001 lr
+	# 64 batch size
+    input_layer = Input(input_shape)
+    hidden = Conv2D(filters=16,
+                    kernel_size=(2, 2),
+                    strides=(1, 1),
+                    activation='relu')(input_layer)
+    hidden = MaxPooling2D()(hidden)
+    f_hidden = Flatten()(hidden)
+    f_hidden = Dense(128, activation='relu')(f_hidden)
+    f_hidden = Dense(64, activation='relu')(f_hidden)
+    output = Dense(2, activation='sigmoid')(f_hidden)
+    return Model(input_layer, output)
+	
+Testprob   
+	#200 epochs
+	#0.001 lr
+	#0.3 dropout
+	# 64 batch size
+	input_layer = Input(input_shape)
+    hidden = Conv2D(filters=16,
+                    kernel_size=(2, 2),
+                    strides=(1, 1),
+                    activation='relu')(input_layer)
+    hidden = MaxPooling2D()(hidden)
+    f_hidden = Flatten()(hidden)
+	f_hidden = Dropout(rate=dr)(f_hidden)
+    f_hidden = Dense(128, activation='relu')(f_hidden)
+    f_hidden = Dense(64, activation='relu')(f_hidden)
+    output = Dense(1, activation='sigmoid')(f_hidden)
+    return Model(input_layer, output)
+
+Testprob2
+	#as testprob
+	#250 epochs
+	#0.001 lr
+
+Testprob3
+	# as testprob2
+	# 32 batch size
