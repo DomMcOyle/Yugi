@@ -65,14 +65,14 @@ class ManualHeuristics(Heuristics):
         w_king_eaten = 10000
 
         # BLACK WEIGHTS
-        w_king_escape = -100
+        w_king_escape = -1000
         w_blocked_escape = 20
         w_front_line = 15
 
         # WHITE WEIGHTS
         w_escape_distance = 100
         w_free_escapes = 200
-        w_king_protection = 10
+        w_king_protection = 50
 
         current_player = game_state.get_current_player()
         board = game_state.get_current_board()
@@ -145,7 +145,7 @@ class ManualHeuristics(Heuristics):
         swap_heuristics = (king_surround * w_king_surround)
 
         final_heuristics = fixed_heuristics + player_heuristics + \
-               (-swap_heuristics if current_player == constants.W_PLAYER else swap_heuristics)
+               (swap_heuristics if current_player == constants.W_PLAYER else -swap_heuristics)
 
         return final_heuristics if choosing_player != current_player else -final_heuristics
 

@@ -1,7 +1,10 @@
+import tensorflow as tf
+tf.get_logger().setLevel("WARNING")
 import sys
 import constants
 import socket
 from aiclient import AIClient
+
 
 if __name__ == "__main__":
     if len(sys.argv) < constants.NUM_CMD_ARG:

@@ -48,10 +48,10 @@ KING_CHECK_STATE = [list("BOOBBBOOO"),
                     list("OOOOWOOOO"),
                     list("OOOWOOOKB"),
                     list("BBWWTWWBB"),
-                    list("BOOOWBOOB"),
+                    list("BOOOWOOOB"),
                     list("OOOOWOOOO"),
                     list("OOBOOOOOO"),
-                    list("OOOBBOOOO")]
+                    list("OOOBBBOOO")]
 
 ALPH = list("abcdefghi")
 KING = "K"
