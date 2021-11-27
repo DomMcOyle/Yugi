@@ -33,7 +33,7 @@ class AIClient(Client):
                     """
                     !!!INSERT HEURISTIC HERE !!!
                     """
-                    move_to_do = min_maxing.alphabeta_search(self.get_current_state(), gm, self.player)
+                    move_to_do = gm.alphabeta_search(self.get_current_state(), gm, self.player)
                     print("move: " + str(move_to_do))
                     from_ = move_to_do[0]
                     to = move_to_do[1]

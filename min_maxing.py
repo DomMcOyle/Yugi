@@ -2,7 +2,7 @@
 
 import constants
 import numpy as np
-from keras.models import load_model
+from tensorflow.keras.models import load_model
 import time
 
 
@@ -108,8 +108,8 @@ class tablut_game:
     successors or you can inherit their default methods. You will also
     need to set the .initial attribute to the initial state; this can
     be done in the constructor."""
-    # neuralpath="Test1//" "optimized2//"
-    def __init__(self, neuralpath="Test1//"):
+    # neuralpath="Test1//" "optimized2//" "Atem//"
+    def __init__(self, neuralpath="Atem//"):
         if neuralpath is None:
             self.pre_trained = None
         else:
@@ -196,7 +196,7 @@ class tablut_game:
                                 to_return.remove([pawn_pos, dest_pos])
         return np.array(to_return)
 
-    def result(self, state, move):  # controllare molto bene
+    def result(self, state, move):
         """Return the state that results from making a move from a state."""
         result_board = state.get_current_board().copy()
 
@@ -275,7 +275,29 @@ class tablut_game:
         state_to_return = tablut_state(state.negate_current_player(), result_board)
         return state_to_return
 
-    def utility(self, state, player):  # euristica (da fare)
+    def utility(self, state, player):
+        """Return the value of this final state to player."""
+
+        # dimensione in più: reshape(1, 9, 9, 1) conversione da stringa a numero. Guardare branch neural
+
+        new_mat = np.vectorize(constants.CONVERT_DICT.get)(state.get_current_board())
+        to_predict = (np.reshape(new_mat, (1, 9, 9, 1)) - 1)/2
+
+        prediction = self.pre_trained(to_predict, training=False)
+        to_return = 0
+        prediction = prediction.numpy()[0][0]
+        if player == constants.W_PLAYER and prediction >= 0.5:
+            to_return = prediction
+        elif player == constants.W_PLAYER and prediction < 0.5:
+            to_return = -(1 - prediction)
+        elif player == constants.B_PLAYER and prediction < 0.5:
+            to_return = 1 - prediction
+        elif player == constants.B_PLAYER and prediction >= 0.5:
+            to_return = -prediction
+
+        return to_return
+
+    def utility_2(self, state, player):
         """Return the value of this final state to player."""
 
         # dimensione in più: reshape(1, 9, 9, 1) conversione da stringa a numero. Guardare branch neural
@@ -299,10 +321,10 @@ class tablut_game:
 
         return to_return
 
-    def utility_2(self, state, player):
+    def utility_3(self, state, player):
         """Return the value of this final state to player."""
         # dimensione in più: reshape(1, 9, 9, 1) conversione da stringa a numero. Guardare branch neural
-
+        #start = time.time()
         new_mat = np.vectorize(constants.CONVERT_DICT.get)(state.get_current_board())
         to_predict = np.reshape(new_mat, (1, 9, 9, 1)) / 3
 
@@ -317,6 +339,7 @@ class tablut_game:
             to_return = 1-prediction
         elif player == constants.B_PLAYER and prediction >= 0.5:
             to_return = -prediction
+        #print(time.time() - start)
         return to_return
 
     def __king_eaten_normal__(self, state):
@@ -401,10 +424,74 @@ class tablut_game:
                     self.display(state)
                     return self.utility(state, self.to_move(self.initial))
 
+    def __complement_player__(self, player):
+        if player == constants.W_PLAYER:
+            return constants.B_PLAYER
+        else:
+            return constants.W_PLAYER
 
-def alphabeta_search(state, game, choosing_player, d=2, cutoff_test=None, eval_fn=None):
-    """Search game to determine best action; use alpha-beta pruning.
-    This version cuts off search and uses an evaluation function."""
+    def max_value(self, state, alpha, beta, depth, game, cutoff_test, eval_fn, choosing_player, start_time):
+        # print(depth)
+        if cutoff_test(state, depth):
+            return eval_fn(state, choosing_player, depth)
+        v = -np.inf
+        for a in game.actions(state):
+            #print(choosing_player)
+            #print(state)
+            if time.time() - start_time > 30:
+                break
+            v = max(v, self.min_value(game.result(state, a), alpha, beta, depth + 1, game,
+                                      cutoff_test, eval_fn, choosing_player, start_time))#self.__complement_player__(choosing_player)))
+            if v >= beta:
+                return v
+            alpha = max(alpha, v)
+        return v
+
+    def min_value(self, state, alpha, beta, depth, game, cutoff_test, eval_fn, choosing_player, start_time):
+        # print(depth)
+        if cutoff_test(state, depth):
+            return eval_fn(state, choosing_player, depth)
+        v = np.inf
+        for a in game.actions(state):
+            #print(choosing_player)
+            #print(state)
+            if time.time() - start_time > 30:
+                break
+            v = min(v, self.max_value(game.result(state, a), alpha, beta, depth + 1, game,
+                                      cutoff_test, eval_fn, choosing_player, start_time))#self.__complement_player__(choosing_player)))
+            if v <= alpha:
+                return v
+            beta = min(beta, v)
+        return v
+
+    def alphabeta_search(self, state, game, choosing_player, d=2, cutoff_test=None, eval_fn=None):
+        """Search game to determine best action; use alpha-beta pruning.
+        This version cuts off search and uses an evaluation function."""
+
+        start = time.time()
+        player = game.to_move(state)
+
+        # Body of alpha_beta_cutoff_search starts here:
+        # The default test cuts off at depth d or at a terminal state
+        cutoff_test = (cutoff_test or (lambda state, depth: depth > d or game.terminal_test(state)))
+        eval_fn = eval_fn or (lambda state, choosing_player, depth: game.utility(state, player))
+        best_score = -np.inf
+        beta = np.inf
+        best_action = None
+        start_time = time.time()
+        for a in game.actions(state):
+            v = self.min_value(game.result(state, a), best_score, beta, 1, game, cutoff_test,
+                               eval_fn, choosing_player, start_time)
+            if v > best_score:
+                best_score = v
+                best_action = a
+        print("heuristic evaluation in seconds: " + str(time.time() - start))
+        return best_action
+
+
+"""def alphabeta_search(state, game, choosing_player, d=2, cutoff_test=None, eval_fn=None):
+    Search game to determine best action; use alpha-beta pruning.
+    This version cuts off search and uses an evaluation function.
     start = time.time()
     player = game.to_move(state)
 
@@ -447,7 +534,7 @@ def alphabeta_search(state, game, choosing_player, d=2, cutoff_test=None, eval_f
             best_score = v
             best_action = a
     print("heuristic evaluation in seconds: " + str(time.time() - start))
-    return best_action
+    return best_action"""
 
 
 """ test result 
@@ -459,11 +546,11 @@ print(result_state)
 """
 
 
-""" test alphabeta
+""" test alphabeta 
 #file_path = "Training//Model//Test1"
 gm = tablut_game()
-cs = tablut_state(constants.B_PLAYER, np.array(constants.KING_CHECK_STATE))
-print(alphabeta_search(cs, gm))
+cs = tablut_state(constants.W_PLAYER, np.array(constants.INITIAL_STATE))
+print(gm.alphabeta_search(cs, gm, choosing_player=cs.get_current_player()))
 """
 
 
@@ -474,9 +561,9 @@ cs = tablut_state(constants.W_PLAYER, np.array(constants.KING_CHECK_STATE))
 print(gm.actions(cs))
 """
 
-""" test utility
+""" test utility 
 gm = tablut_game()
-cs = tablut_state(constants.B_PLAYER, np.array(constants.KING_CHECK_STATE))
+cs = tablut_state(constants.W_PLAYER, np.array(constants.INITIAL_STATE))
 print(gm.utility(cs, cs.get_current_player()))
 """
 

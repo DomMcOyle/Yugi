@@ -76,6 +76,8 @@ ADJACENT_TO_TOWER_POSITION = [(4, 3), (3, 4), (5, 4), (4, 5)]
 
 JSON_LOOKUP = {'EMPTY': FREE_BOX, 'KING': KING, 'WHITE': W_PLAYER, 'BLACK': B_PLAYER, 'THRONE': TOWER}
 
-CONVERT_DICT = {"O": 0, "T": 0, "W": 1, "B": 2, "K": 3}
+CONVERT_DICT_2 = {"O": 0, "T": 0, "W": 1, "B": 2, "K": 3}
+
+CONVERT_DICT = {"O": 0, "T": 0, "W": 2, "B": 1, "K": 3}
 
 CITADEL_THRESHOLD = 5
