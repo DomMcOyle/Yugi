@@ -294,47 +294,6 @@ class tablut_game:
             to_return = 1-prediction
         return (1 + to_return) * man_val
 
-    def utility_2(self, state, player):
-        """Return the value of this final state to player."""
-
-        new_mat = np.vectorize(constants.CONVERT_DICT.get)(state.get_current_board())
-        to_predict = np.reshape(new_mat, (1, 9, 9, 1))/3
-
-        prediction = self.pre_trained(to_predict, training=False)
-        to_return = 0
-        prediction = np.reshape(prediction, 2)
-        if abs(prediction[0] - prediction[1]) > 0.1:
-            max_val = max(prediction)
-            if player == constants.W_PLAYER and np.where(prediction == max_val)[0][0] == 0:
-                to_return = prediction[0]
-            elif player == constants.W_PLAYER and np.where(prediction == max_val)[0][0] == 1:
-                to_return = -prediction[1]
-            elif player == constants.B_PLAYER and np.where(prediction == max_val)[0][0] == 1:
-                to_return = prediction[1]
-            elif player == constants.B_PLAYER and np.where(prediction == max_val)[0][0] == 0:
-                to_return = -prediction[0]
-
-        return to_return
-
-    def utility_3(self, state, player):
-        """Return the value of this final state to player."""
-
-        new_mat = np.vectorize(constants.CONVERT_DICT.get)(state.get_current_board())
-        to_predict = np.reshape(new_mat, (1, 9, 9, 1)) / 3
-
-        prediction = self.pre_trained(to_predict, training=False)
-        to_return = 0
-        prediction = prediction.numpy()[0][0]
-        if player == constants.W_PLAYER and prediction >= 0.5:
-            to_return = prediction
-        elif player == constants.W_PLAYER and prediction < 0.5:
-            to_return = -(1 - prediction)
-        elif player == constants.B_PLAYER and prediction < 0.5:
-            to_return = 1-prediction
-        elif player == constants.B_PLAYER and prediction >= 0.5:
-            to_return = -prediction
-        return to_return
-
     def __king_eaten_normal__(self, state):
         king_pos = np.where(state.get_current_board() == constants.KING)
         king_pos_rows = king_pos[0]

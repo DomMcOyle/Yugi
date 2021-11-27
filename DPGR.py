@@ -1,6 +1,5 @@
 import os
-os.environ['TF_CPP_MIN_MIN_LOG_LEVEL']='2'
-import tensorflow as tf
+os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 import sys
 import constants
 import socket
