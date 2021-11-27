@@ -1,0 +1,14 @@
+parsed_dataset
+	given the directory of games, contains each move in each game with the following features:
+	current_state: linearized board with values 1 for white, 2 for black, 3 for king, 0 for free tiles
+	color_player: 0 if the player that have to choose the move is white, 1 if the player is black
+	turn_number: number of the turn in the match
+	match_result_white:1 if white wins in the match, 0 if white loses
+	match_result_black:1 if black wins in the match, 0 if black loses
+parsed_dataset_v2
+	as the previous, but in order to have more data, each move is flipped orizontally, vertically and both
+	the features are the same.
+parsed_dataset_v3
+	as the previous, but the values for black and white player in the board have been swapped for
+	consistency
+	

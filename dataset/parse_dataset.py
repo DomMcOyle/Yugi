@@ -68,5 +68,3 @@ def parse_dataset(path_to_games, save_path="./"):
                 row_ds += 1
 
     df.to_csv(save_path + "parsed_dataset_v3.csv", index=False, mode="w+")
-
-parse_dataset("C:\\Users\\Neo Dom-Z Mk. II\\Desktop\\games")

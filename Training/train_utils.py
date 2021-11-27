@@ -10,6 +10,7 @@ BEST_MODEL = None
 BEST_SCORE = np.inf
 BS = []
 
+
 def load_dataset(filename, separator=",", _numpy=False):
     df = pd.read_csv(filename, sep=separator)
     if _numpy:
