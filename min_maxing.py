@@ -1,29 +1,33 @@
-#from aima.games import alphabeta_search
+# from aima.games import alphabeta_search
+
 import constants
 import numpy as np
+from tensorflow.keras.models import load_model
+import time
+from manual_heuristics import ManualHeuristics
 
 
 class tablut_move:
     def __init__(self):
-        self.lut = np.array(constants.alph) #lookuptable
+        self.lut = np.array(constants.ALPH)  # lookuptable
 
     def from_num_to_notation(self, num_move):
-        #move converter, from couple of integers in range [0,8] to standard notation (string)
-        chosen_column = self.lut[num_move[0]]
-        chosen_row = num_move[1] + 1
+        # move converter, from couple of integers in range [0,8] to standard notation (string)
+        chosen_column = self.lut[num_move[1]]
+        chosen_row = num_move[0] + 1
         to_return = chosen_column + str(chosen_row)
         return to_return
 
     def from_notation_to_num(self, notation_move):
-        #move converter, from standard notation to couple of integers in range [0,8]
+        # move converter, from standard notation to couple of integers in range [0,8]
         notation_move_to_use = list(notation_move)
         chosen_column = np.where(self.lut == notation_move_to_use[0])[0][0]
         chosen_row = int(notation_move_to_use[1]) - 1
-        to_return = (chosen_column, chosen_row)
+        to_return = (chosen_row, chosen_column)
         return to_return
 
     @staticmethod
-    def to_json_dict(from_,to,turn, convert=True):
+    def to_json_dict(from_, to, turn, convert=True):
         to_send = dict()
         if convert:
             move = tablut_move()
@@ -43,7 +47,7 @@ class tablut_state:
     def __init__(self, player, board):
         self.current_player = player
         self.current_board = board
-        self.initial = np.array(constants.initial_state)
+        self.initial = np.array(constants.INITIAL_STATE)
 
     def get_current_player(self):
         return self.current_player
@@ -94,8 +98,7 @@ class tablut_state:
             for c in range(0, len(board[0])):
                 board[r][c] = constants.JSON_LOOKUP[board[r][c]]
 
-        return tablut_state(player, board)
-
+        return tablut_state(player, np.array(board))
 
 
 class tablut_game:
@@ -106,19 +109,28 @@ class tablut_game:
     successors or you can inherit their default methods. You will also
     need to set the .initial attribute to the initial state; this can
     be done in the constructor."""
+    # neuralpath="Test1//" "optimized2//" "Atem//"
+    def __init__(self, neuralpath="Atem//"):
+        if neuralpath is None:
+            self.pre_trained = None
+        else:
+            self.pre_trained = load_model(neuralpath)
+
     def __free_box__(self, state, pos):
-        if state.get_current_board()[pos[0], pos[1]] != constants.free_box:
+        if state.get_current_board()[pos[0], pos[1]] != constants.FREE_BOX:
             return False
         else:
             return True
 
-    def __free_box_king__(self, state, pos):
-        #print(state.get_current_board()[pos[0], pos[1]])
-        if (state.get_current_board()[pos[0], pos[1]] == constants.free_box
-                or state.get_current_board()[pos[0], pos[1]] == constants.tower):
-            return True
-        else:
-            return False
+    def __inbetween__(self, pawn_pos, dest_pos):
+        to_return = []
+        if pawn_pos[0] == dest_pos[0]:
+            min_val = min((pawn_pos[1], dest_pos[1]))
+            return [(pawn_pos[0], min_val + i) for i in range(0, abs(pawn_pos[1] - dest_pos[1]) + 1)]
+        if pawn_pos[1] == dest_pos[1]:
+            min_val = min((pawn_pos[0], dest_pos[0]))
+            return [(pawn_pos[1], min_val + i) for i in range(0, abs(pawn_pos[0] - dest_pos[0]) + 1)]
+
 
     def actions(self, state):
         """
@@ -130,96 +142,265 @@ class tablut_game:
         pos = np.where(state.get_current_board() == state.get_current_player())
         pos_rows = pos[0]
         pos_cols = pos[1]
-        move_dict = {}
-        for j in range(0, pos_rows.shape[0]):
-            row = pos_rows[j]
-            col = pos_cols[j]
-            couple_list = []
-
-            for i in range(0, 9):
-                if self.__free_box__(state, (row, i)) and (row, i) not in couple_list:
-                    couple_list.extend([(row, i)])
-
-                if self.__free_box__(state, (i, col)) and (i, col) not in couple_list:
-                    couple_list.extend([(i, col)])
-
-            move_dict.update({(row, col): couple_list})
-        # if it's the white's turn, consider the king
         if state.get_current_player() == constants.W_PLAYER:
-            king_pos = np.where(state.get_current_board() == constants.king)
-            king_pos_rows = king_pos[0]
-            king_pos_cols = king_pos[1]
-            for j in range(0, king_pos_rows.shape[0]):
-                row = king_pos_rows[j]
-                col = king_pos_cols[j]
-                couple_list = []
-                for i in range(0, 9):
-                    if self.__free_box_king__(state, (row, i)) and (row, i) not in couple_list:
-                        couple_list.extend([(row, i)])
-                    if self.__free_box_king__(state, (i, col)) and (i, col) not in couple_list:
-                        couple_list.extend([(i, col)])
-            move_dict.update({(row, col): couple_list})
+            king_pos = np.where(state.get_current_board() == constants.KING)
+            pos_rows = np.append(pos[0], (king_pos[0]))
+            pos_cols = np.append(pos[1], (king_pos[1]))
+
+        move_dict = {}
+        for i in range(0, pos_rows.shape[0]):
+            couple_list = []
+            down_flag = True
+            left_flag = True
+            up_flag = True
+            right_flag = True
+            for j in range(1, 9):
+                row_to_check_down = pos_rows[i] + j
+                col_to_check_left = pos_cols[i] + j
+                row_to_check_up = pos_rows[i] - j
+                col_to_check_right = pos_cols[i] - j
+                if row_to_check_down < 9 and down_flag:
+                    if self.__free_box__(state, (row_to_check_down, pos_cols[i])):
+                        couple_list.extend([(row_to_check_down, pos_cols[i])])
+                    else:
+                        down_flag = False
+                if col_to_check_left < 9 and left_flag:
+                    if self.__free_box__(state, (pos_rows[i], col_to_check_left)):
+                        couple_list.extend([(pos_rows[i], col_to_check_left)])
+                    else:
+                        left_flag = False
+                if row_to_check_up >= 0 and up_flag:
+                    if self.__free_box__(state, (row_to_check_up, pos_cols[i])):
+                        couple_list.extend([(row_to_check_up, pos_cols[i])])
+                    else:
+                        up_flag = False
+                if col_to_check_right >= 0 and right_flag:
+                    if self.__free_box__(state, (pos_rows[i], col_to_check_right)):
+                        couple_list.extend([(pos_rows[i], col_to_check_right)])
+                    else:
+                        right_flag = False
+                move_dict.update({(pos_rows[i], pos_cols[i]): couple_list})
+        fields = constants.CAMP_POSITION
         to_return = []
         for pawn_pos in move_dict.keys():
             for dest_pos in move_dict.get(pawn_pos):
-                to_return.append(np.array([pawn_pos, dest_pos]))
+                if pawn_pos in fields or (dest_pos not in fields and dest_pos != constants.TOWER_POSITION):
+                    to_return.append([pawn_pos, dest_pos])
+                if pawn_pos in fields and dest_pos in fields:
+                    if pawn_pos[0] == dest_pos[0]:
+                        if abs(pawn_pos[1] - dest_pos[1]) < constants.CITADEL_THRESHOLD:
+                            to_return.append([pawn_pos, dest_pos])
+                if pawn_pos not in fields and dest_pos not in fields:
+                    for inb_elem in self.__inbetween__(pawn_pos, dest_pos):
+                        if inb_elem in constants.CAMP_POSITION:
+                            if [pawn_pos, dest_pos] in to_return:
+                                to_return.remove([pawn_pos, dest_pos])
         return np.array(to_return)
 
-    def result(self, state, move): #chiedere che cosa implementare
+    def result(self, state, move):
         """Return the state that results from making a move from a state."""
-        result_board = state.get_current_board()
-        if result_board[move[0][0], move[0][1]] != constants.king:
+        result_board = state.get_current_board().copy()
+
+        if result_board[move[0][0], move[0][1]] != constants.KING:
             result_board[move[1][0], move[1][1]] = state.get_current_player()
-            result_board[move[0][0], move[0][1]] = constants.free_box
+            result_board[move[0][0], move[0][1]] = constants.FREE_BOX
         else:
-            result_board[move[1][0], move[1][1]] = constants.king
-            if np.all(move[0] == constants.tower_position):
-                result_board[move[0][0], move[0][1]] = constants.tower
+            result_board[move[1][0], move[1][1]] = constants.KING
+            if np.all(move[0] == constants.TOWER_POSITION):
+                result_board[move[0][0], move[0][1]] = constants.TOWER
             else:
-                result_board[move[0][0], move[0][1]] = constants.free_box
-        #handle captures
+                result_board[move[0][0], move[0][1]] = constants.FREE_BOX
+
+        # handle captures add capture with camps (the next box can be a camp, the tower or an allied pawn, or king
+        # in case of the white player)
         try:
-            if result_board[move[1][0]+1, move[1][1]] == state.negate_current_player():
+            if result_board[move[1][0] + 1, move[1][1]] == state.negate_current_player():
                 if (result_board[move[1][0] + 2, move[1][1]] == state.get_current_player()
+                        or (move[1][0] + 2, move[1][1]) in constants.CAMP_POSITION_FOR_CAPTURES
+                        or (move[1][0] + 2, move[1][1]) == constants.TOWER_POSITION
                         or (state.get_current_player() == constants.W_PLAYER
-                            and (result_board[move[1][0] + 2, move[1][1]] == constants.king))):
-                    result_board[move[1][0] + 1, move[1][1]] = constants.free_box
+                            and (result_board[move[1][0] + 2, move[1][1]] == constants.KING))):
+                    result_board[move[1][0] + 1, move[1][1]] = constants.FREE_BOX
         except:
-           pass
+            pass
         try:
             if result_board[move[1][0] - 1, move[1][1]] == state.negate_current_player():
                 if (result_board[move[1][0] - 2, move[1][1]] == state.get_current_player()
+                        or (move[1][0] - 2, move[1][1]) in constants.CAMP_POSITION_FOR_CAPTURES
+                        or (move[1][0] - 2, move[1][1]) == constants.TOWER_POSITION
                         or (state.get_current_player() == constants.W_PLAYER
-                            and (result_board[move[1][0] - 2, move[1][1]] == constants.king))):
-                    result_board[move[1][0] - 1, move[1][1]] = constants.free_box
+                            and (result_board[move[1][0] - 2, move[1][1]] == constants.KING))):
+                    result_board[move[1][0] - 1, move[1][1]] = constants.FREE_BOX
         except:
-           pass
+            pass
         try:
             if result_board[move[1][0], move[1][1] + 1] == state.negate_current_player():
                 if (result_board[move[1][0], move[1][1] + 2] == state.get_current_player()
+                        or (move[1][0], move[1][1] + 2) in constants.CAMP_POSITION_FOR_CAPTURES
+                        or (move[1][0], move[1][1] + 2) == constants.TOWER_POSITION
                         or (state.get_current_player() == constants.W_PLAYER
-                            and (result_board[move[1][0], move[1][1] + 2] == constants.king))):
-                    result_board[move[1][0], move[1][1] + 1] = constants.free_box
+                            and (result_board[move[1][0], move[1][1] + 2] == constants.KING))):
+                    result_board[move[1][0], move[1][1] + 1] = constants.FREE_BOX
         except:
-           pass
+            pass
         try:
             if result_board[move[1][0], move[1][1] - 1] == state.negate_current_player():
                 if (result_board[move[1][0], move[1][1] - 2] == state.get_current_player()
+                        or (move[1][0], move[1][1] - 2) in constants.CAMP_POSITION_FOR_CAPTURES
+                        or (move[1][0], move[1][1] - 2) == constants.TOWER_POSITION
                         or (state.get_current_player() == constants.W_PLAYER
-                            and (result_board[move[1][0], move[1][1] - 2] == constants.king))):
-                    result_board[move[1][0], move[1][1] - 1] = constants.free_box
+
+                            and (result_board[move[1][0], move[1][1] - 2] == constants.KING))):
+                    result_board[move[1][0], move[1][1] - 1] = constants.FREE_BOX
         except:
-           pass
-        return result_board
+            pass
+        # king capture
+        king_pos = np.where(result_board == constants.KING)
+        king_pos_rows = king_pos[0]
+        king_pos_cols = king_pos[1]
+        result_state = tablut_state(state.negate_current_player(), result_board)
+        if state.get_current_player() == constants.B_PLAYER:
+            if ((king_pos_rows, king_pos_cols) == constants.TOWER_POSITION
+                    and self.__king_surrounded_num__(result_state) == 4):
+                result_board[king_pos_rows, king_pos_cols] = constants.TOWER # black wins by capturing the king in the tower
+            else:
+                if self.__king_adjacent_to_tower__(result_state) and self.__king_surrounded_num__(result_state) == 3:
+                    result_board[king_pos_rows, king_pos_cols] = constants.FREE_BOX
+                    # black wins by capturing the king adjacent to the tower and surrounded by
+                    # 3 pawns
+                elif not self.__king_adjacent_to_tower__(result_state) and self.__king_surrounded_num__(result_state) == 2 \
+                        and self.__king_eaten_normal__(result_state):
+                    result_board[king_pos_rows, king_pos_cols] = constants.FREE_BOX
+                    # black wins by capturing the king as a normal pawn
 
+        state_to_return = tablut_state(state.negate_current_player(), result_board)
+        return state_to_return
 
-    def utility(self, state, player): #euristica (da fare)
+    def utility(self, state, player, depth):
         """Return the value of this final state to player."""
-        raise NotImplementedError
 
-    def terminal_test(self, state): #distinzione fra bianchi e neri (da fare)
+        # dimensione in più: reshape(1, 9, 9, 1) conversione da stringa a numero. Guardare branch neural
+        man_val = ManualHeuristics.evaluate(state, player, depth=depth)
+        if abs(man_val) > constants.MAN_THRESHOLD:
+            return man_val
+
+        new_mat = np.vectorize(constants.CONVERT_DICT.get)(state.get_current_board())
+        to_predict = (np.reshape(new_mat, (1, 9, 9, 1)) - 1)/2
+
+        prediction = self.pre_trained(to_predict, training=False)
+        to_return = 0
+        prediction = prediction.numpy()[0][0]
+        if player == constants.W_PLAYER:
+            to_return = prediction
+        elif player == constants.B_PLAYER:
+            to_return = 1-prediction
+        return (1 + to_return) * man_val
+        #return man_val
+
+    def utility_2(self, state, player):
+        """Return the value of this final state to player."""
+
+        # dimensione in più: reshape(1, 9, 9, 1) conversione da stringa a numero. Guardare branch neural
+
+        new_mat = np.vectorize(constants.CONVERT_DICT.get)(state.get_current_board())
+        to_predict = np.reshape(new_mat, (1, 9, 9, 1))/3
+
+        prediction = self.pre_trained(to_predict, training=False)
+        to_return = 0
+        prediction = np.reshape(prediction, 2)
+        if abs(prediction[0] - prediction[1]) > 0.1:
+            max_val = max(prediction)
+            if player == constants.W_PLAYER and np.where(prediction == max_val)[0][0] == 0:
+                to_return = prediction[0]
+            elif player == constants.W_PLAYER and np.where(prediction == max_val)[0][0] == 1:
+                to_return = -prediction[1]
+            elif player == constants.B_PLAYER and np.where(prediction == max_val)[0][0] == 1:
+                to_return = prediction[1]
+            elif player == constants.B_PLAYER and np.where(prediction == max_val)[0][0] == 0:
+                to_return = -prediction[0]
+
+        return to_return
+
+    def utility_3(self, state, player):
+        """Return the value of this final state to player."""
+        # dimensione in più: reshape(1, 9, 9, 1) conversione da stringa a numero. Guardare branch neural
+        #start = time.time()
+        new_mat = np.vectorize(constants.CONVERT_DICT.get)(state.get_current_board())
+        to_predict = np.reshape(new_mat, (1, 9, 9, 1)) / 3
+
+        prediction = self.pre_trained(to_predict, training=False)
+        to_return = 0
+        prediction = prediction.numpy()[0][0]
+        if player == constants.W_PLAYER and prediction >= 0.5:
+            to_return = prediction
+        elif player == constants.W_PLAYER and prediction < 0.5:
+            to_return = -(1 - prediction)
+        elif player == constants.B_PLAYER and prediction < 0.5:
+            to_return = 1-prediction
+        elif player == constants.B_PLAYER and prediction >= 0.5:
+            to_return = -prediction
+        #print(time.time() - start)
+        return to_return
+
+    def __king_eaten_normal__(self, state):
+        king_pos = np.where(state.get_current_board() == constants.KING)
+        king_pos_rows = king_pos[0]
+        king_pos_cols = king_pos[1]
+        board = state.get_current_board()
+        try:
+            return board[king_pos_rows + 1, king_pos_cols] == board[king_pos_rows - 1, king_pos_cols] == constants.B_PLAYER \
+                or board[king_pos_rows, king_pos_cols + 1] == board[king_pos_rows, king_pos_cols - 1] == constants.B_PLAYER
+        except IndexError:
+            return False
+
+    def __king_adjacent_to_tower__(self, state):
+        king_pos = np.where(state.get_current_board() == constants.KING)
+        king_pos_rows = king_pos[0]
+        king_pos_cols = king_pos[1]
+        if (king_pos_rows, king_pos_cols) in constants.ADJACENT_TO_TOWER_POSITION:
+            return True
+        return False
+
+    def __king_surrounded_num__(self, state):
+        king_pos = np.where(state.get_current_board() == constants.KING)
+        king_pos_rows = king_pos[0]
+        king_pos_cols = king_pos[1]
+        to_return = 0
+        try:
+            if state.get_current_board()[king_pos_rows + 1, king_pos_cols] == constants.B_PLAYER:
+                to_return += 1
+        except:
+            pass
+        try:
+            if state.get_current_board()[king_pos_rows - 1, king_pos_cols] == constants.B_PLAYER:
+                to_return += 1
+        except:
+            pass
+        try:
+            if state.get_current_board()[king_pos_rows, king_pos_cols + 1] == constants.B_PLAYER:
+                to_return += 1
+        except:
+            pass
+        try:
+            if state.get_current_board()[king_pos_rows, king_pos_cols - 1] == constants.B_PLAYER:
+                to_return += 1
+        except:
+            pass
+        return to_return
+
+    def terminal_test(self, state):  # distinzione fra bianchi e neri (da fare)
         """Return True if this is a final state for the game."""
-        return not self.actions(state)
+        king_pos = np.where(state.get_current_board() == constants.KING)
+        king_pos_rows = king_pos[0]
+        king_pos_cols = king_pos[1]
+        # white wins, the king has escaped
+        if king_pos_rows.shape[0] == 0 and king_pos_cols.shape[0] == 0:
+            return True
+        elif (king_pos_rows, king_pos_cols) in constants.ESCAPE_POSITION:
+            return True
+        return False
+
+        # return not self.actions(state)
 
     def to_move(self, state):
         """Return the player whose move it is in this state."""
@@ -243,32 +424,102 @@ class tablut_game:
                     self.display(state)
                     return self.utility(state, self.to_move(self.initial))
 
+    def __complement_player__(self, player):
+        if player == constants.W_PLAYER:
+            return constants.B_PLAYER
+        else:
+            return constants.W_PLAYER
 
-def alphabeta_search(state, game, d=4, cutoff_test=None, eval_fn=None):
-    """Search game to determine best action; use alpha-beta pruning.
-    This version cuts off search and uses an evaluation function."""
+    def max_value(self, state, alpha, beta, depth, game, cutoff_test, eval_fn, choosing_player, start_time):
+        # print(depth)
+        if cutoff_test(state, depth):
+            return eval_fn(state, choosing_player, depth)
+        v = -np.inf
+        obtained_actions = game.actions(state)
+        np.random.shuffle(obtained_actions)
+        for a in obtained_actions:
+            #print(choosing_player)
+            #print(state)
+            if time.time() - start_time > constants.TIME_THRESHOLD:
+                break
+            v = max(v, self.min_value(game.result(state, a), alpha, beta, depth + 1, game,
+                                      cutoff_test, eval_fn, choosing_player, start_time))#self.__complement_player__(choosing_player)))
+            if v >= beta:
+                return v
+            alpha = max(alpha, v)
+        return v
 
+    def min_value(self, state, alpha, beta, depth, game, cutoff_test, eval_fn, choosing_player, start_time):
+        # print(depth)
+        if cutoff_test(state, depth):
+            return eval_fn(state, choosing_player, depth)
+        v = np.inf
+        obtained_actions = game.actions(state)
+        np.random.shuffle(obtained_actions)
+        for a in obtained_actions:
+            #print(choosing_player)
+            #print(state)
+            if time.time() - start_time > constants.TIME_THRESHOLD:
+                break
+            v = min(v, self.max_value(game.result(state, a), alpha, beta, depth + 1, game,
+                                      cutoff_test, eval_fn, choosing_player, start_time))#self.__complement_player__(choosing_player)))
+            if v <= alpha:
+                return v
+            beta = min(beta, v)
+        return v
+
+    def alphabeta_search(self, state, game, choosing_player, d=2, cutoff_test=None, eval_fn=None):
+        """Search game to determine best action; use alpha-beta pruning.
+        This version cuts off search and uses an evaluation function."""
+
+        player = game.to_move(state)
+        # Body of alpha_beta_cutoff_search starts here:
+        # The default test cuts off at depth d or at a terminal state
+        cutoff_test = (cutoff_test or (lambda state, depth: depth > d or game.terminal_test(state)))
+        eval_fn = eval_fn or (lambda state, choosing_player, depth: game.utility(state, player, depth))
+        best_score = -np.inf
+        beta = np.inf
+        best_action = None
+        start_time = time.time()
+        obtained_actions = game.actions(state)
+        np.random.shuffle(obtained_actions)
+        for a in obtained_actions:
+            v = self.min_value(game.result(state, a), best_score, beta, 1, game, cutoff_test,
+                               eval_fn, choosing_player, start_time)
+            if v > best_score:
+                best_score = v
+                best_action = a
+        alpha_computation_time = time.time() - start_time
+        return best_action, alpha_computation_time
+
+
+"""def alphabeta_search(state, game, choosing_player, d=2, cutoff_test=None, eval_fn=None):
+    Search game to determine best action; use alpha-beta pruning.
+    This version cuts off search and uses an evaluation function.
+    start = time.time()
     player = game.to_move(state)
 
     def max_value(state, alpha, beta, depth):
+        #print(depth)
         if cutoff_test(state, depth):
-            return eval_fn(state)
+            return eval_fn(state, choosing_player, depth)
         v = -np.inf
         for a in game.actions(state):
             v = max(v, min_value(game.result(state, a),
-                                 alpha, beta, depth+1))
+                                 alpha, beta, depth + 1))
             if v >= beta:
                 return v
             alpha = max(alpha, v)
         return v
 
     def min_value(state, alpha, beta, depth):
+        #print(depth)
         if cutoff_test(state, depth):
-            return eval_fn(state)
+            return eval_fn(state, choosing_player, depth)
         v = np.inf
         for a in game.actions(state):
             v = min(v, max_value(game.result(state, a),
-                                 alpha, beta, depth+1))
+                                 alpha, beta, depth + 1))
             if v <= alpha:
                 return v
             beta = min(beta, v)
@@ -277,7 +528,7 @@ def alphabeta_search(state, game, d=4, cutoff_test=None, eval_fn=None):
     # Body of alpha_beta_cutoff_search starts here:
     # The default test cuts off at depth d or at a terminal state
     cutoff_test = (cutoff_test or (lambda state, depth: depth > d or game.terminal_test(state)))
-    eval_fn = eval_fn or (lambda state: game.utility(state, player))
+    eval_fn = eval_fn or (lambda state, choosing_player, depth: game.utility(state, player))
     best_score = -np.inf
     beta = np.inf
     best_action = None
@@ -286,11 +537,48 @@ def alphabeta_search(state, game, d=4, cutoff_test=None, eval_fn=None):
         if v > best_score:
             best_score = v
             best_action = a
-    return best_action
+    print("heuristic evaluation in seconds: " + str(time.time() - start))
+    return best_action"""
 
 
-
+""" test result 
 gm = tablut_game()
-cs = tablut_state(constants.B_PLAYER, np.array(constants.king_check_state))
-move = np.array([[4, 2], [5, 2]])
-print(gm.result(cs, move))
+cs = tablut_state(constants.W_PLAYER, np.array(constants.KING_CHECK_STATE))
+move = np.array([[6, 7], [6, 8]])
+result_state = gm.result(cs, move)
+print(result_state)
+"""
+
+
+""" test alphabeta 
+#file_path = "Training//Model//Test1"
+gm = tablut_game()
+cs = tablut_state(constants.W_PLAYER, np.array(constants.INITIAL_STATE))
+print(gm.alphabeta_search(cs, gm, choosing_player=cs.get_current_player()))
+"""
+
+
+""" test actions 
+gm = tablut_game()
+cs = tablut_state(constants.W_PLAYER, np.array(constants.KING_CHECK_STATE))
+#print(gm.__inbetween__(np.array([0,8]), np.array([0, 0])))
+print(gm.actions(cs))
+"""
+
+""" test utility """
+gm = tablut_game()
+cs = tablut_state(constants.B_PLAYER, np.array(constants.KING_CHECK_STATE))
+print(gm.utility(cs, cs.get_current_player(), 2))
+
+
+""" test utility_2 
+gm = tablut_game()
+cs = tablut_state(constants.B_PLAYER, np.array(constants.KING_CHECK_STATE))
+print(gm.utility_2(cs, cs.get_current_player()))
+"""
+
+""" test terminal 
+gm = tablut_game()
+cs = tablut_state(constants.W_PLAYER, np.array(constants.KING_CHECK_STATE))
+print(gm.terminal_test(result_state))
+"""
