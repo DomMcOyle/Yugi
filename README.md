@@ -6,7 +6,7 @@ The player consists in:
 - An implementation of bounded minimax with alpha/beta pruning algorithm.
   - The algorithm stops the in-depth search if the maximum depth, a final state or a time bound has been reached.
   - The initial maximum depth is 2 and it is increased if in the previous search the algorithm employed less than a third of the time bound.
-- The heuristic applied consists in a "manual" heuristic which considers common indicators of the quality of the state (number of pawns, particular positions...) which is weighted by the value returned from a neural network trained on a given dataset (further information on the network structure and on the dataset can be found in <code>info.txt</code> in the respective folders)
+- The heuristic applied consists in a "manual" heuristic which considers common indicators of the quality of the state (number of pawns, particular positions...) which is weighted by the value returned from a neural network (Atem) trained on a given dataset (further information on the network structure and on the dataset can be found in <code>info.txt</code> in the respective folders)
   - The neural network has been trained using a hyper-parameter tuning framework [hyperas](https://github.com/maxpumperla/hyperas). The search space given was composed of commonly used values for training.
 
 ## Starting the player
