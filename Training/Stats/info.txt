@@ -41,6 +41,13 @@ Optimized2
     output = Dense(1, activation='sigmoid')(f_hidden)
     return Model(input_layer, output)
 
+Optimized2v2
+#as optimized2, but using the parsed_dataset_v2.csv
+
+Optimized2v3 <------------------------------------------------------USED NET (ATEM)
+# as optimized2, but using the parsed_dataset_v3.csv.
+# The state values to be inputted are rescaled in -0.5 (black pawns), 0.5 (white pawns) and 1 (king), and not between 0 and 1
+
 Optimized3
 #as optimized 1 but with filters=64
 
