@@ -4,6 +4,7 @@ import constants
 import numpy as np
 from tensorflow.keras.models import load_model
 import time
+from manual_heuristics import ManualHeuristics
 
 
 class tablut_move:
@@ -275,10 +276,13 @@ class tablut_game:
         state_to_return = tablut_state(state.negate_current_player(), result_board)
         return state_to_return
 
-    def utility(self, state, player):
+    def utility(self, state, player, depth):
         """Return the value of this final state to player."""
 
         # dimensione in più: reshape(1, 9, 9, 1) conversione da stringa a numero. Guardare branch neural
+        man_val = ManualHeuristics.evaluate(state, player, depth=depth)
+        if abs(man_val) > constants.MAN_THRESHOLD:
+            return man_val
 
         new_mat = np.vectorize(constants.CONVERT_DICT.get)(state.get_current_board())
         to_predict = (np.reshape(new_mat, (1, 9, 9, 1)) - 1)/2
@@ -286,16 +290,12 @@ class tablut_game:
         prediction = self.pre_trained(to_predict, training=False)
         to_return = 0
         prediction = prediction.numpy()[0][0]
-        if player == constants.W_PLAYER and prediction >= 0.5:
+        if player == constants.W_PLAYER:
             to_return = prediction
-        elif player == constants.W_PLAYER and prediction < 0.5:
-            to_return = -(1 - prediction)
-        elif player == constants.B_PLAYER and prediction < 0.5:
-            to_return = 1 - prediction
-        elif player == constants.B_PLAYER and prediction >= 0.5:
-            to_return = -prediction
-
-        return to_return
+        elif player == constants.B_PLAYER:
+            to_return = 1-prediction
+        return (1 + to_return) * man_val
+        #return man_val
 
     def utility_2(self, state, player):
         """Return the value of this final state to player."""
@@ -435,10 +435,12 @@ class tablut_game:
         if cutoff_test(state, depth):
             return eval_fn(state, choosing_player, depth)
         v = -np.inf
-        for a in game.actions(state):
+        obtained_actions = game.actions(state)
+        np.random.shuffle(obtained_actions)
+        for a in obtained_actions:
             #print(choosing_player)
             #print(state)
-            if time.time() - start_time > 30:
+            if time.time() - start_time > constants.TIME_THRESHOLD:
                 break
             v = max(v, self.min_value(game.result(state, a), alpha, beta, depth + 1, game,
                                       cutoff_test, eval_fn, choosing_player, start_time))#self.__complement_player__(choosing_player)))
@@ -452,10 +454,12 @@ class tablut_game:
         if cutoff_test(state, depth):
             return eval_fn(state, choosing_player, depth)
         v = np.inf
-        for a in game.actions(state):
+        obtained_actions = game.actions(state)
+        np.random.shuffle(obtained_actions)
+        for a in obtained_actions:
             #print(choosing_player)
             #print(state)
-            if time.time() - start_time > 30:
+            if time.time() - start_time > constants.TIME_THRESHOLD:
                 break
             v = min(v, self.max_value(game.result(state, a), alpha, beta, depth + 1, game,
                                       cutoff_test, eval_fn, choosing_player, start_time))#self.__complement_player__(choosing_player)))
@@ -468,25 +472,25 @@ class tablut_game:
         """Search game to determine best action; use alpha-beta pruning.
         This version cuts off search and uses an evaluation function."""
 
-        start = time.time()
         player = game.to_move(state)
-
         # Body of alpha_beta_cutoff_search starts here:
         # The default test cuts off at depth d or at a terminal state
         cutoff_test = (cutoff_test or (lambda state, depth: depth > d or game.terminal_test(state)))
-        eval_fn = eval_fn or (lambda state, choosing_player, depth: game.utility(state, player))
+        eval_fn = eval_fn or (lambda state, choosing_player, depth: game.utility(state, player, depth))
         best_score = -np.inf
         beta = np.inf
         best_action = None
         start_time = time.time()
-        for a in game.actions(state):
+        obtained_actions = game.actions(state)
+        np.random.shuffle(obtained_actions)
+        for a in obtained_actions:
             v = self.min_value(game.result(state, a), best_score, beta, 1, game, cutoff_test,
                                eval_fn, choosing_player, start_time)
             if v > best_score:
                 best_score = v
                 best_action = a
-        print("heuristic evaluation in seconds: " + str(time.time() - start))
-        return best_action
+        alpha_computation_time = time.time() - start_time
+        return best_action, alpha_computation_time
 
 
 """def alphabeta_search(state, game, choosing_player, d=2, cutoff_test=None, eval_fn=None):
@@ -561,11 +565,11 @@ cs = tablut_state(constants.W_PLAYER, np.array(constants.KING_CHECK_STATE))
 print(gm.actions(cs))
 """
 
-""" test utility 
+""" test utility """
 gm = tablut_game()
-cs = tablut_state(constants.W_PLAYER, np.array(constants.INITIAL_STATE))
-print(gm.utility(cs, cs.get_current_player()))
-"""
+cs = tablut_state(constants.B_PLAYER, np.array(constants.KING_CHECK_STATE))
+print(gm.utility(cs, cs.get_current_player(), 2))
+
 
 """ test utility_2 
 gm = tablut_game()

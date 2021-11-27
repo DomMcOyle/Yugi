@@ -9,6 +9,10 @@ class Client():
     def __init__(self, player, name="Yugi", timeout=60, ipAddress="localhost"):
         self.serverIp = ipAddress
         self.timeout = timeout
+        if timeout - constants.TIME_MARGIN > constants.TIME_MARGIN:
+            constants.TIME_THRESHOLD = timeout - constants.TIME_MARGIN
+        else:
+            constants.TIME_THRESHOLD = timeout - 3 # 3 seconds for luck, magic number
         if player.lower() == constants.B_NAME:
             self.player = constants.B_PLAYER
             self.port = constants.B_PORT

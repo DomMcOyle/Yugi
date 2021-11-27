@@ -42,15 +42,16 @@ INITIAL_STATE = [list("OOOBBBOOO"),
                      list("OOOOOOOOO"),
                      list("OOOOOOOOO")]"""
 
-KING_CHECK_STATE = [list("OOOOOOBOO"),
-                    list("BOOOOOOOO"),
-                    list("WOOOOOWOB"),
-                    list("OOOOOOWOO"),
-                    list("OOWKTWOOO"),
-                    list("OOOOOOOOO"),
-                    list("OOWWOOOOB"),
-                    list("OOBBBOOWB"),
-                    list("OOOOOOOBO")]
+
+KING_CHECK_STATE = [list("BOOBBBOOO"),
+                    list("OOOOBOOOO"),
+                    list("OOOOWOOOO"),
+                    list("OOOWOOOKB"),
+                    list("BBWWTWWBB"),
+                    list("BOOOWBOOB"),
+                    list("OOOOWOOOO"),
+                    list("OOBOOOOOO"),
+                    list("OOOBBOOOO")]
 
 ALPH = list("abcdefghi")
 KING = "K"
@@ -81,3 +82,9 @@ CONVERT_DICT_2 = {"O": 0, "T": 0, "W": 1, "B": 2, "K": 3}
 CONVERT_DICT = {"O": 0, "T": 0, "W": 2, "B": 1, "K": 3}
 
 CITADEL_THRESHOLD = 5
+
+MAN_THRESHOLD = 9800
+
+TIME_THRESHOLD = 30
+
+TIME_MARGIN = 5
