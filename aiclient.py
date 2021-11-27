@@ -1,9 +1,8 @@
-import min_maxing
 from client import Client
-import traceback
 import constants
-import time
 import min_maxing
+import traceback
+
 
 class AIClient(Client):
     def __init__(self, player, name="Yugi", timeout=60, ipAddress="localhost"):
@@ -14,6 +13,20 @@ class AIClient(Client):
         gm = min_maxing.tablut_game()
         try:
             self.declare_name()
+            print(  """
+                        ,------------.
+                        (_\           \\
+                          | Gioca la:  |
+                          | partita    |
+                          | Vinci la:  |
+                          | fatica     |
+                          | Questa è:  |
+                          | la tua vita|
+                         _| Yu-Gi-Oh.  |
+                        (_/_____(*)___/
+                                 \\
+                                  ))
+                    """)
         except:
             traceback.print_exc()
             self.sock.close()

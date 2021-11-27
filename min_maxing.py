@@ -109,7 +109,7 @@ class tablut_game:
     successors or you can inherit their default methods. You will also
     need to set the .initial attribute to the initial state; this can
     be done in the constructor."""
-    # neuralpath="Test1//" "optimized2//" "Atem//"
+
     def __init__(self, neuralpath="Atem//"):
         if neuralpath is None:
             self.pre_trained = None
@@ -123,7 +123,6 @@ class tablut_game:
             return True
 
     def __inbetween__(self, pawn_pos, dest_pos):
-        to_return = []
         if pawn_pos[0] == dest_pos[0]:
             min_val = min((pawn_pos[1], dest_pos[1]))
             return [(pawn_pos[0], min_val + i) for i in range(0, abs(pawn_pos[1] - dest_pos[1]) + 1)]
@@ -279,7 +278,6 @@ class tablut_game:
     def utility(self, state, player, depth):
         """Return the value of this final state to player."""
 
-        # dimensione in più: reshape(1, 9, 9, 1) conversione da stringa a numero. Guardare branch neural
         man_val = ManualHeuristics.evaluate(state, player, depth=depth)
         if abs(man_val) > constants.MAN_THRESHOLD:
             return man_val
@@ -295,12 +293,9 @@ class tablut_game:
         elif player == constants.B_PLAYER:
             to_return = 1-prediction
         return (1 + to_return) * man_val
-        #return man_val
 
     def utility_2(self, state, player):
         """Return the value of this final state to player."""
-
-        # dimensione in più: reshape(1, 9, 9, 1) conversione da stringa a numero. Guardare branch neural
 
         new_mat = np.vectorize(constants.CONVERT_DICT.get)(state.get_current_board())
         to_predict = np.reshape(new_mat, (1, 9, 9, 1))/3
@@ -323,8 +318,7 @@ class tablut_game:
 
     def utility_3(self, state, player):
         """Return the value of this final state to player."""
-        # dimensione in più: reshape(1, 9, 9, 1) conversione da stringa a numero. Guardare branch neural
-        #start = time.time()
+
         new_mat = np.vectorize(constants.CONVERT_DICT.get)(state.get_current_board())
         to_predict = np.reshape(new_mat, (1, 9, 9, 1)) / 3
 
@@ -339,7 +333,6 @@ class tablut_game:
             to_return = 1-prediction
         elif player == constants.B_PLAYER and prediction >= 0.5:
             to_return = -prediction
-        #print(time.time() - start)
         return to_return
 
     def __king_eaten_normal__(self, state):
@@ -388,7 +381,7 @@ class tablut_game:
             pass
         return to_return
 
-    def terminal_test(self, state):  # distinzione fra bianchi e neri (da fare)
+    def terminal_test(self, state):
         """Return True if this is a final state for the game."""
         king_pos = np.where(state.get_current_board() == constants.KING)
         king_pos_rows = king_pos[0]
@@ -431,17 +424,15 @@ class tablut_game:
             return constants.W_PLAYER
 
     def max_value(self, state, alpha, beta, depth, game, cutoff_test, eval_fn, choosing_player, start_time):
-        # print(depth)
+
         if cutoff_test(state, depth):
             return eval_fn(state, choosing_player, depth)
         v = -np.inf
         obtained_actions = game.actions(state)
         np.random.shuffle(obtained_actions)
         for a in obtained_actions:
-            #print(choosing_player)
-            #print(state)
             if time.time() - start_time > constants.TIME_THRESHOLD:
-                break
+                return max(v, self.utility(game.result(state, a), choosing_player, depth))
             v = max(v, self.min_value(game.result(state, a), alpha, beta, depth + 1, game,
                                       cutoff_test, eval_fn, choosing_player, start_time))#self.__complement_player__(choosing_player)))
             if v >= beta:
@@ -450,17 +441,16 @@ class tablut_game:
         return v
 
     def min_value(self, state, alpha, beta, depth, game, cutoff_test, eval_fn, choosing_player, start_time):
-        # print(depth)
+
         if cutoff_test(state, depth):
             return eval_fn(state, choosing_player, depth)
         v = np.inf
         obtained_actions = game.actions(state)
         np.random.shuffle(obtained_actions)
         for a in obtained_actions:
-            #print(choosing_player)
-            #print(state)
             if time.time() - start_time > constants.TIME_THRESHOLD:
-                break
+                return min(v, self.utility(game.result(state, a), choosing_player, depth))
+
             v = min(v, self.max_value(game.result(state, a), alpha, beta, depth + 1, game,
                                       cutoff_test, eval_fn, choosing_player, start_time))#self.__complement_player__(choosing_player)))
             if v <= alpha:
@@ -491,94 +481,3 @@ class tablut_game:
                 best_action = a
         alpha_computation_time = time.time() - start_time
         return best_action, alpha_computation_time
-
-
-"""def alphabeta_search(state, game, choosing_player, d=2, cutoff_test=None, eval_fn=None):
-    Search game to determine best action; use alpha-beta pruning.
-    This version cuts off search and uses an evaluation function.
-    start = time.time()
-    player = game.to_move(state)
-
-    def max_value(state, alpha, beta, depth):
-        #print(depth)
-        if cutoff_test(state, depth):
-            return eval_fn(state, choosing_player, depth)
-        v = -np.inf
-        for a in game.actions(state):
-            v = max(v, min_value(game.result(state, a),
-                                 alpha, beta, depth + 1))
-            if v >= beta:
-                return v
-            alpha = max(alpha, v)
-        return v
-
-    def min_value(state, alpha, beta, depth):
-        #print(depth)
-        if cutoff_test(state, depth):
-            return eval_fn(state, choosing_player, depth)
-        v = np.inf
-        for a in game.actions(state):
-            v = min(v, max_value(game.result(state, a),
-                                 alpha, beta, depth + 1))
-            if v <= alpha:
-                return v
-            beta = min(beta, v)
-        return v
-
-    # Body of alpha_beta_cutoff_search starts here:
-    # The default test cuts off at depth d or at a terminal state
-    cutoff_test = (cutoff_test or (lambda state, depth: depth > d or game.terminal_test(state)))
-    eval_fn = eval_fn or (lambda state, choosing_player, depth: game.utility(state, player))
-    best_score = -np.inf
-    beta = np.inf
-    best_action = None
-    for a in game.actions(state):
-        v = min_value(game.result(state, a), best_score, beta, 1)
-        if v > best_score:
-            best_score = v
-            best_action = a
-    print("heuristic evaluation in seconds: " + str(time.time() - start))
-    return best_action"""
-
-
-""" test result 
-gm = tablut_game()
-cs = tablut_state(constants.W_PLAYER, np.array(constants.KING_CHECK_STATE))
-move = np.array([[6, 7], [6, 8]])
-result_state = gm.result(cs, move)
-print(result_state)
-"""
-
-
-""" test alphabeta 
-#file_path = "Training//Model//Test1"
-gm = tablut_game()
-cs = tablut_state(constants.W_PLAYER, np.array(constants.INITIAL_STATE))
-print(gm.alphabeta_search(cs, gm, choosing_player=cs.get_current_player()))
-"""
-
-
-""" test actions 
-gm = tablut_game()
-cs = tablut_state(constants.W_PLAYER, np.array(constants.KING_CHECK_STATE))
-#print(gm.__inbetween__(np.array([0,8]), np.array([0, 0])))
-print(gm.actions(cs))
-"""
-
-""" test utility """
-gm = tablut_game()
-cs = tablut_state(constants.B_PLAYER, np.array(constants.KING_CHECK_STATE))
-print(gm.utility(cs, cs.get_current_player(), 2))
-
-
-""" test utility_2 
-gm = tablut_game()
-cs = tablut_state(constants.B_PLAYER, np.array(constants.KING_CHECK_STATE))
-print(gm.utility_2(cs, cs.get_current_player()))
-"""
-
-""" test terminal 
-gm = tablut_game()
-cs = tablut_state(constants.W_PLAYER, np.array(constants.KING_CHECK_STATE))
-print(gm.terminal_test(result_state))
-"""

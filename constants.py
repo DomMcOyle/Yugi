@@ -32,16 +32,6 @@ INITIAL_STATE = [list("OOOBBBOOO"),
                  list("OOOOBOOOO"),
                  list("OOOBBBOOO")]
 
-"""KING_CHECK_STATE = [list("OOOOOOOOO"),
-                     list("OOOOOOOOO"),
-                     list("OOOOOOOOO"),
-                     list("OOOOOOOOB"),
-                     list("OOOOTOOBB"),
-                     list("OOOOOOOOB"),
-                     list("OOOOOOOWO"),
-                     list("OOOOOOOOO"),
-                     list("OOOOOOOOO")]"""
-
 
 KING_CHECK_STATE = [list("BOOBBBOOO"),
                     list("OOOOBOOOO"),

@@ -148,9 +148,3 @@ class ManualHeuristics(Heuristics):
                (swap_heuristics if current_player == constants.W_PLAYER else -swap_heuristics)
 
         return final_heuristics if choosing_player != current_player else -final_heuristics
-
-
-"""
-t = tablut_state(constants.W_PLAYER, np.array(constants.INITIAL_STATE))
-ManualHeuristics.evaluate(t)
-"""
