@@ -1,3 +1,7 @@
+### PATHS ###
+MODEL_STAT_PATH = "Stats\\"
+MODEL_PATH = "Model\\"
+
 ### CLIENT ###
 NUM_CMD_ARG = 1
 W_NAME = "white"
@@ -45,3 +49,4 @@ king = "K"
 tower = "T"
 tower_position = [4,4]
 JSON_LOOKUP = {'EMPTY': free_box, 'KING': king, 'WHITE':W_PLAYER, 'BLACK': B_PLAYER, 'THRONE':tower }
+
