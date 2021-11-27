@@ -1,5 +1,5 @@
 # Yugi
-AI player for Tablut Challenge 21/22@Unibo
+AI player for Tablut Challenge 21/22@Unibo by [Dell'Olio Domenico](https://github.com/DomMcOyle), [Delvecchio Giovanni Pio](https://github.com/GiovanniPioDelvecchio) and [Raffaele Disabato](https://github.com/Raffo99)
 
 ## How it works
 The player consists in:
