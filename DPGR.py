@@ -15,7 +15,7 @@ if __name__ == "__main__":
         exit(-1)
     time = 60
     if len(sys.argv) > 2:
-        time = sys.argv[2]
+        time = float(sys.argv[2])
     ip = "localhost"
     if len(sys.argv) > 3:
         try:
